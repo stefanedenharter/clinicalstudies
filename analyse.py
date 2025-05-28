@@ -68,7 +68,7 @@ if st.button("Search"):
 
             df["Start"] = df["Start"].apply(normalize_date)
             df["End"] = df["End"].apply(normalize_date)
-            #df = df.dropna(subset=["Start", "End"])  # Only keep studies with valid dates
+            df = df.dropna(subset=["Start", "End"])  # Only keep studies with valid dates
 
             # --- Sort first by Start Date for better timeline sense ---
             df = df.sort_values(by=["Start", "End"]).reset_index(drop=True)
@@ -85,6 +85,7 @@ if st.button("Search"):
             )
 
             st.session_state.df = df  # Store results for use with filters
+            st.dataframe(df)
         else:
             st.error("Failed to fetch data. Try again later.")
 
