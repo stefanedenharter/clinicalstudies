@@ -138,14 +138,15 @@ if st.session_state.df is not None:
         textfont=dict(size=16, color="white", family="Arial")
     )
 
-    today = datetime.today()  # This is a Python datetime object
+    # Add a vertical line for today
+    today = datetime.today().date().isoformat()
     fig.add_vline(
         x=today,
         line_width=2,
         line_dash="dash",
-        line_color="red",
-        annotation_text="Today",
-        annotation_position="top"
+        line_color="red"
+        # annotation_text="Today",        # Uncomment if it works
+        # annotation_position="top"
     )
 
     fig.update_layout(
