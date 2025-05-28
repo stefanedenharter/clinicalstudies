@@ -6,7 +6,7 @@ from datetime import datetime
 
 # Set page layout and title
 st.set_page_config(layout="wide")
-st.title("🚑 Clinical Trials Explorer")  # Medical-themed icon
+st.title("🚑 Clinical Trials Explorer")
 
 # Text input for search term
 query = st.text_input("Enter a condition or keyword (e.g., BPH, prostate cancer):", "BPH")
@@ -122,10 +122,11 @@ if st.session_state.df is not None:
         df,
         x_start="Start",
         x_end="End",
-        y="NCT ID",
+        y="Bar Label",
         color="Status",
         color_discrete_map=custom_colors,
-        hover_data=["Title", "Sponsor", "Status", "Study Type", "Company Study ID"],
+        category_orders={"Bar Label": df["Bar Label"].tolist()},
+        hover_data=["NCT ID", "Title", "Sponsor", "Status", "Study Type", "Company Study ID"],
         custom_data=["Link"]
     )
 
