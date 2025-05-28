@@ -89,7 +89,7 @@ if st.button("Search"):
                                 i, row["NCT ID"], va='center', ha='center', fontsize=7, color="white")
 
                     ax.set_yticks([])  # Hide study titles
-                    ax.set_xlabel("Date")
+               
 
 
                     # Legend below chart with extra space
