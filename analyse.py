@@ -4,45 +4,74 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 
-st.title("Clinical Trials Explorer")
+st.set_page_config(layout="wide")
+st.title("🧪 Clinical Trials Explorer")
 
-query = st.text_input("Search condition (e.g., BPH, prostate cancer)", "BPH")
+# User input
+query = st.text_input("Enter a condition or keyword (e.g., BPH, prostate cancer):", "BPH")
 
 if st.button("Search"):
-    url = f"https://clinicaltrials.gov/api/v2/studies?query.term={query}&pageSize=20"
-    response = requests.get(url)
-    data = response.json()
-    studies = data.get("studies", [])
+    with st.spinner("Fetching data from ClinicalTrials.gov..."):
+        # Query the ClinicalTrials.gov API (v2 beta)
+        url = f"https://clinicaltrials.gov/api/v2/studies?query.term={query}&pageSize=20"
+        response = requests.get(url)
+        if response.status_code != 200:
+            st.error("Failed to fetch data. Try again later.")
+        else:
+            data = response.json()
+            studies = data.get("studies", [])
 
-    records = []
-    for study in studies:
-        id = study.get("protocolSection", {}).get("identificationModule", {}).get("nctId", "")
-        title = study.get("protocolSection", {}).get("identificationModule", {}).get("briefTitle", "")
-        status = study.get("protocolSection", {}).get("statusModule", {}).get("overallStatus", "")
-        start_date = study.get("protocolSection", {}).get("statusModule", {}).get("startDateStruct", {}).get("date", "")
-        end_date = study.get("protocolSection", {}).get("statusModule", {}).get("completionDateStruct", {}).get("date", "")
-        records.append((id, title, status, start_date, end_date))
+            # Extract relevant fields
+            records = []
+            for study in studies:
+                try:
+                    sec = study.get("protocolSection", {})
+                    id_mod = sec.get("identificationModule", {})
+                    status_mod = sec.get("statusModule", {})
 
-        df = pd.DataFrame(records, columns=["ID", "Title", "Status", "Start", "End"])
+                    nct_id = id_mod.get("nctId", "")
+                    title = id_mod.get("briefTitle", "")
+                    status = status_mod.get("overallStatus", "")
+                    start_date = status_mod.get("startDateStruct", {}).get("date", "")
+                    end_date = status_mod.get("completionDateStruct", {}).get("date", "")
 
-        # Add hyperlinks in Markdown format
-        df["ID"] = df["ID"].apply(lambda x: f"[{x}](https://clinicaltrials.gov/study/{x})")
-        
-        # Display as markdown-enabled table
-        st.markdown("### Search Results")
-        st.write(df.to_markdown(index=False), unsafe_allow_html=True)
+                    records.append((nct_id, title, status, start_date, end_date))
+                except Exception as e:
+                    continue
 
+            if not records:
+                st.warning("No results found.")
+            else:
+                # Create DataFrame
+                df = pd.DataFrame(records, columns=["NCT ID", "Title", "Status", "Start", "End"])
 
-    # Plot chart
-    df = df.dropna(subset=["Start", "End"])
-    df["Start"] = pd.to_datetime(df["Start"], errors='coerce')
-    df["End"] = pd.to_datetime(df["End"], errors='coerce')
-    df = df.dropna()
+                # Add hyperlinks to NCT IDs
+                df["Link"] = df["NCT ID"].apply(
+                    lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
+                )
+                df_display = df[["Link", "Title", "Status", "Start", "End"]]
 
-    fig, ax = plt.subplots(figsize=(10, 6))
-    for i, row in df.iterrows():
-        ax.barh(i, (row["End"] - row["Start"]).days, left=row["Start"], height=0.6)
-    ax.set_yticks(range(len(df)))
-    ax.set_yticklabels(df["Title"], fontsize=7)
-    ax.set_xlabel("Date")
-    st.pyplot(fig)
+                st.markdown("### 🧾 Search Results")
+                st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
+
+                # Prepare for chart
+                df_chart = df.dropna(subset=["Start", "End"]).copy()
+                df_chart["Start"] = pd.to_datetime(df_chart["Start"], errors='coerce')
+                df_chart["End"] = pd.to_datetime(df_chart["End"], errors='coerce')
+                df_chart = df_chart.dropna()
+
+                if not df_chart.empty:
+                    st.markdown("### 📊 Study Duration Chart")
+                    fig, ax = plt.subplots(figsize=(10, len(df_chart) * 0.5))
+
+                    for i, row in df_chart.iterrows():
+                        ax.barh(i, (row["End"] - row["Start"]).days, left=row["Start"], color="skyblue")
+                        ax.text(row["Start"], i, row["NCT ID"], va='center', ha='right', fontsize=7)
+
+                    ax.set_yticks(range(len(df_chart)))
+                    ax.set_yticklabels(df_chart["Title"], fontsize=7)
+                    ax.set_xlabel("Date")
+                    ax.set_title("Study Duration (Start to Completion)")
+                    st.pyplot(fig)
+                else:
+                    st.info("No studies had valid dates for charting.")
