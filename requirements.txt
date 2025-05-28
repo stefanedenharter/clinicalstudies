@@ -5,3 +5,4 @@ matplotlib
 tabulate
 plotly
 openpyxl
+xlsxwriter
