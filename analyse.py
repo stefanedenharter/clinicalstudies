@@ -23,8 +23,15 @@ if st.button("Search"):
         end_date = study.get("protocolSection", {}).get("statusModule", {}).get("completionDateStruct", {}).get("date", "")
         records.append((id, title, status, start_date, end_date))
 
-    df = pd.DataFrame(records, columns=["ID", "Title", "Status", "Start", "End"])
-    st.dataframe(df)
+        df = pd.DataFrame(records, columns=["ID", "Title", "Status", "Start", "End"])
+
+        # Add hyperlinks in Markdown format
+        df["ID"] = df["ID"].apply(lambda x: f"[{x}](https://clinicaltrials.gov/study/{x})")
+        
+        # Display as markdown-enabled table
+        st.markdown("### Search Results")
+        st.write(df.to_markdown(index=False), unsafe_allow_html=True)
+
 
     # Plot chart
     df = df.dropna(subset=["Start", "End"])
