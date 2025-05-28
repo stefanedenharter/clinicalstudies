@@ -4,18 +4,14 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 
-# Set page layout and title
 st.set_page_config(layout="wide")
 st.title("🚑 Clinical Trials Explorer")
 
-# Text input for search term
 query = st.text_input("Enter a condition or keyword (e.g., BPH, prostate cancer):", "BPH")
 
-# Initialize session state for results
 if "df" not in st.session_state:
     st.session_state.df = None
 
-# Perform search and store in session state
 if st.button("Search"):
     with st.spinner("Fetching data from ClinicalTrials.gov..."):
         url = f"https://clinicaltrials.gov/api/v2/studies?query.term={query}&pageSize=30"
@@ -64,7 +60,7 @@ if st.button("Search"):
             df["Start"] = df["Start"].apply(normalize_date)
             df["End"] = df["End"].apply(normalize_date)
             df = df.dropna(subset=["Start", "End"])
-            df = df.sort_values(by="Status")
+            df = df.sort_values(by="#")  # Always sort by running number!
 
             df["Link"] = df["NCT ID"].apply(
                 lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
@@ -74,19 +70,15 @@ if st.button("Search"):
         else:
             st.error("Failed to fetch data. Try again later.")
 
-# Display filters and results if data is available
 if st.session_state.df is not None:
     df = st.session_state.df.copy()
 
-    # Filter layout
     col1, col2 = st.columns(2)
-
     with col1:
         sponsors = sorted(df["Sponsor"].dropna().unique())
         sponsor_filter = st.selectbox("Filter by Sponsor", ["All"] + sponsors)
         if sponsor_filter != "All":
             df = df[df["Sponsor"] == sponsor_filter]
-
     with col2:
         study_types = sorted(df["Study Type"].dropna().unique())
         type_filter = st.selectbox("Filter by Study Type", ["All"] + study_types)
@@ -94,10 +86,11 @@ if st.session_state.df is not None:
             df = df[df["Study Type"] == type_filter]
 
     # Reassign row numbers and bar labels after filtering
+    df = df.sort_values(by=["#"])  # Ensure correct order before numbering!
     df["#"] = range(1, len(df) + 1)
     df["Bar Label"] = df.apply(lambda row: f"{row['NCT ID']} ({row['#']})", axis=1)
 
-    # Display results table
+    # Display results table (sorted by running number)
     df_display = df[[
         "#", "Link", "Title", "Sponsor", "Status", "Study Type",
         "Company Study ID", "Start", "End", "Last Verified"
@@ -118,6 +111,9 @@ if st.session_state.df is not None:
         "WITHDRAWN": "brown"
     }
 
+    # Y-axis in plot must match the table order!
+    bar_labels = df["Bar Label"].tolist()
+
     fig = px.timeline(
         df,
         x_start="Start",
@@ -125,7 +121,7 @@ if st.session_state.df is not None:
         y="Bar Label",
         color="Status",
         color_discrete_map=custom_colors,
-        category_orders={"Bar Label": df["Bar Label"].tolist()},
+        category_orders={"Bar Label": bar_labels},
         hover_data=["NCT ID", "Title", "Sponsor", "Status", "Study Type", "Company Study ID"],
         custom_data=["Link"]
     )
@@ -138,15 +134,13 @@ if st.session_state.df is not None:
         textfont=dict(size=16, color="white", family="Arial")
     )
 
-    # Add a vertical line for today
+    # Add a vertical line for today (as ISO string)
     today = datetime.today().date().isoformat()
     fig.add_vline(
         x=today,
         line_width=2,
         line_dash="dash",
         line_color="red"
-        # annotation_text="Today",        # Uncomment if it works
-        # annotation_position="top"
     )
 
     fig.update_layout(
