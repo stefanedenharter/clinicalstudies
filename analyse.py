@@ -4,13 +4,18 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 
+# Set page layout
 st.set_page_config(layout="wide")
-st.title("🧪 Clinical Trials Explorer (Interactive)")
+st.title("🧪 Clinical Trials Explorer")
 
+# Text input for clinical condition search
 query = st.text_input("Enter a condition or keyword (e.g., BPH, prostate cancer):", "BPH")
 
+# Start search on button click
 if st.button("Search"):
     with st.spinner("Fetching data from ClinicalTrials.gov..."):
+
+        # Call ClinicalTrials.gov API
         url = f"https://clinicaltrials.gov/api/v2/studies?query.term={query}&pageSize=30"
         response = requests.get(url)
 
@@ -20,6 +25,7 @@ if st.button("Search"):
             data = response.json()
             studies = data.get("studies", [])
 
+            # Extract relevant fields from each study
             records = []
             for study in studies:
                 try:
@@ -27,6 +33,7 @@ if st.button("Search"):
                     id_mod = sec.get("identificationModule", {})
                     status_mod = sec.get("statusModule", {})
                     sponsor_mod = sec.get("sponsorCollaboratorsModule", {})
+                    design_mod = sec.get("designModule", {})
 
                     nct_id = id_mod.get("nctId", "")
                     title = id_mod.get("briefTitle", "")
@@ -35,19 +42,22 @@ if st.button("Search"):
                     start_date = status_mod.get("startDateStruct", {}).get("date", "")
                     end_date = status_mod.get("completionDateStruct", {}).get("date", "")
                     last_verified = status_mod.get("lastUpdatePostDateStruct", {}).get("date", "")
+                    enrollment = design_mod.get("enrollmentModule", {}).get("enrollmentCount", "")
                     link = f"https://clinicaltrials.gov/study/{nct_id}"
 
-                    records.append((nct_id, title, sponsor, status, start_date, end_date, last_verified, link))
+                    records.append((nct_id, title, sponsor, status, start_date, end_date, last_verified, enrollment, link))
                 except Exception:
                     continue
 
             if not records:
                 st.warning("No results found.")
             else:
+                # Build DataFrame
                 df = pd.DataFrame(records, columns=[
-                    "NCT ID", "Title", "Sponsor", "Status", "Start", "End", "Last Verified", "Link"
+                    "NCT ID", "Title", "Sponsor", "Status", "Start", "End", "Last Verified", "Enrollment", "Link"
                 ])
 
+                # Convert partial dates (YYYY-MM) to complete ones (YYYY-MM-01)
                 def normalize_date(date_str):
                     if isinstance(date_str, str) and len(date_str) == 7:
                         date_str += "-01"
@@ -58,16 +68,17 @@ if st.button("Search"):
                 df = df.dropna(subset=["Start", "End"])
                 df = df.sort_values(by="Status")
 
+                # Convert NCT IDs to clickable links
                 df["Link"] = df["NCT ID"].apply(
                     lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
                 )
 
-                df_display = df[["Link", "Title", "Sponsor", "Status", "Start", "End", "Last Verified"]]
+                # Display table at the top
+                df_display = df[["Link", "Title", "Sponsor", "Status", "Start", "End", "Last Verified", "Enrollment"]]
                 st.markdown("### 🧾 Search Results")
                 st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-                st.markdown("### 📊 Interactive Study Timeline")
-
+                # Custom color scheme for study statuses
                 custom_colors = {
                     "RECRUITING": "blue",
                     "COMPLETED": "green",
@@ -78,6 +89,9 @@ if st.button("Search"):
                     "WITHDRAWN": "brown"
                 }
 
+                st.markdown("### 📊 Study Timeline")
+
+                # Create Plotly timeline chart
                 fig = px.timeline(
                     df,
                     x_start="Start",
@@ -85,10 +99,11 @@ if st.button("Search"):
                     y="NCT ID",
                     color="Status",
                     color_discrete_map=custom_colors,
-                    hover_data=["Title", "Sponsor", "Status"],
+                    hover_data=["Title", "Sponsor", "Status", "Enrollment"],
                     custom_data=["Link"]
                 )
 
+                # Format bar labels (NCT IDs)
                 fig.update_traces(
                     text=df["NCT ID"],
                     textposition="inside",
@@ -97,6 +112,7 @@ if st.button("Search"):
                     textfont=dict(size=16, color="white", family="Arial")
                 )
 
+                # Chart layout styling
                 fig.update_layout(
                     showlegend=True,
                     xaxis=dict(
@@ -120,7 +136,9 @@ if st.button("Search"):
                     height=40 * len(df) + 200
                 )
 
+                # Add outer frame (top + right lines)
                 fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
                 fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
 
+                # Render the chart
                 st.plotly_chart(fig, use_container_width=True)
