@@ -10,7 +10,7 @@ st.title("🚑 Clinical Trials Explorer")
 
 # ------------- SEARCH INPUT -------------
 query = st.text_input(
-    "Enter a condition or keyword (e.g., BPH, prostate cancer):", "BPH"
+    "Enter a condition or keyword (e.g., BPH, prostate cancer):", ""
 )
 
 # --- Keep search results in memory so filters don’t break UX ---
