@@ -4,3 +4,4 @@ requests
 matplotlib
 tabulate
 plotly
+openpyxl
