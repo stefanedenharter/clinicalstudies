@@ -48,7 +48,7 @@ if st.button("Search"):
                 # Create DataFrame
                 df = pd.DataFrame(records, columns=["NCT ID", "Title", "Sponsor", "Status", "Start", "End", "Link"])
 
-                # Normalize incomplete dates (e.g., "YYYY-MM")
+                # Normalize incomplete dates
                 def normalize_date(date_str):
                     if isinstance(date_str, str) and len(date_str) == 7:
                         date_str += "-01"
@@ -71,7 +71,7 @@ if st.button("Search"):
 
                 # Plotly timeline chart
                 st.markdown("### 📊 Interactive Study Timeline")
-                
+
                 fig = px.timeline(
                     df,
                     x_start="Start",
@@ -81,32 +81,46 @@ if st.button("Search"):
                     hover_data=["Title", "Sponsor", "Status"],
                     custom_data=["Link"]
                 )
-                
-                # Center text in bars and style it
+
                 fig.update_traces(
                     text=df["NCT ID"],
                     textposition="inside",
                     insidetextanchor="middle",
                     marker_line_width=0,
                     textfont=dict(
-                        size=16,         # Increased font size
+                        size=16,
                         color="white",
                         family="Arial",
                     )
                 )
-                
-                # Layout tweaks
+
+                # Final styling and frame
                 fig.update_layout(
                     showlegend=True,
-                    xaxis_title=None,
-                    yaxis_title=None,
-                    xaxis_showticklabels=True,
-                    yaxis_showticklabels=True,
+                    xaxis=dict(
+                        title=None,
+                        showticklabels=True,
+                        showline=True,
+                        linecolor="black",
+                        tickfont=dict(size=16, family="Arial", color="black")
+                    ),
+                    yaxis=dict(
+                        title=None,
+                        showticklabels=True,
+                        showline=True,
+                        linecolor="black",
+                        tickfont=dict(size=16, family="Arial", color="black")
+                    ),
+                    plot_bgcolor="white",
+                    paper_bgcolor="white",
                     hoverlabel=dict(font_size=14, font_family="Arial"),
-                    font=dict(size=16, family="Arial", color="black"),  # global font settings
+                    font=dict(size=16, family="Arial", color="black"),
                     margin=dict(l=20, r=20, t=40, b=40),
                     height=40 * len(df) + 200
                 )
-                
-                st.plotly_chart(fig, use_container_width=True)
 
+                # Add outer border (frame)
+                fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
+                fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
+
+                st.plotly_chart(fig, use_container_width=True)
