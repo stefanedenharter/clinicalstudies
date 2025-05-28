@@ -25,7 +25,7 @@ if st.button("Search"):
             data = response.json()
             studies = data.get("studies", [])
 
-            # Extract relevant fields from each study
+            # Extract relevant fields
             records = []
             for i, study in enumerate(studies, start=1):
                 try:
@@ -56,13 +56,12 @@ if st.button("Search"):
             if not records:
                 st.warning("No results found.")
             else:
-                # Build DataFrame
                 df = pd.DataFrame(records, columns=[
                     "#", "NCT ID", "Title", "Sponsor", "Status", "Study Type",
                     "Company Study ID", "Start", "End", "Last Verified", "Link"
                 ])
 
-                # Normalize partial dates (e.g. YYYY-MM) to YYYY-MM-01
+                # Normalize dates
                 def normalize_date(date_str):
                     if isinstance(date_str, str) and len(date_str) == 7:
                         date_str += "-01"
@@ -73,20 +72,41 @@ if st.button("Search"):
                 df = df.dropna(subset=["Start", "End"])
                 df = df.sort_values(by="Status")
 
+                # Filter: Sponsor
+                sponsors = sorted(df["Sponsor"].dropna().unique())
+                sponsor_filter = st.selectbox("Filter by Sponsor", ["All"] + sponsors)
+                if sponsor_filter != "All":
+                    df = df[df["Sponsor"] == sponsor_filter]
+
+                # Filter: Study Type
+                study_types = sorted(df["Study Type"].dropna().unique())
+                type_filter = st.selectbox("Filter by Study Type", ["All"] + study_types)
+                if type_filter != "All":
+                    df = df[df["Study Type"] == type_filter]
+
+                # Filter: Start Date Range
+                min_date = df["Start"].min()
+                max_date = df["Start"].max()
+                if pd.notnull(min_date) and pd.notnull(max_date):
+                    date_range = st.slider(
+                        "Start Date Range",
+                        min_value=min_date.to_pydatetime(),
+                        max_value=max_date.to_pydatetime(),
+                        value=(min_date.to_pydatetime(), max_date.to_pydatetime())
+                    )
+                    df = df[df["Start"].between(date_range[0], date_range[1])]
+
                 # Convert NCT IDs to clickable links
                 df["Link"] = df["NCT ID"].apply(
                     lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
                 )
 
                 # Display table with running number
-                df_display = df[[
-                    "#", "Link", "Title", "Sponsor", "Status", "Study Type",
-                    "Company Study ID", "Start", "End", "Last Verified"
-                ]]
+                df_display = df[[ "#", "Link", "Title", "Sponsor", "Status", "Study Type", "Company Study ID", "Start", "End", "Last Verified" ]]
                 st.markdown("### 🧾 Search Results")
                 st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-                # Custom color mapping
+                # Custom colors
                 custom_colors = {
                     "RECRUITING": "blue",
                     "COMPLETED": "green",
@@ -99,10 +119,8 @@ if st.button("Search"):
 
                 st.markdown("### 📊 Study Timeline")
 
-                # Add label for display in bar (e.g., "NCT12345678 (1)")
                 df["Bar Label"] = df.apply(lambda row: f"{row['NCT ID']} ({row['#']})", axis=1)
 
-                # Plotly Gantt-style chart
                 fig = px.timeline(
                     df,
                     x_start="Start",
