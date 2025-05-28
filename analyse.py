@@ -72,17 +72,20 @@ if st.button("Search"):
                 df = df.dropna(subset=["Start", "End"])
                 df = df.sort_values(by="Status")
 
-                # Filter: Sponsor
-                sponsors = sorted(df["Sponsor"].dropna().unique())
-                sponsor_filter = st.selectbox("Filter by Sponsor", ["All"] + sponsors)
-                if sponsor_filter != "All":
-                    df = df[df["Sponsor"] == sponsor_filter]
+                # Filters in two columns
+                col1, col2 = st.columns(2)
 
-                # Filter: Study Type
-                study_types = sorted(df["Study Type"].dropna().unique())
-                type_filter = st.selectbox("Filter by Study Type", ["All"] + study_types)
-                if type_filter != "All":
-                    df = df[df["Study Type"] == type_filter]
+                with col1:
+                    sponsors = sorted(df["Sponsor"].dropna().unique())
+                    sponsor_filter = st.selectbox("Filter by Sponsor", ["All"] + sponsors)
+                    if sponsor_filter != "All":
+                        df = df[df["Sponsor"] == sponsor_filter]
+
+                with col2:
+                    study_types = sorted(df["Study Type"].dropna().unique())
+                    type_filter = st.selectbox("Filter by Study Type", ["All"] + study_types)
+                    if type_filter != "All":
+                        df = df[df["Study Type"] == type_filter]
 
                 # Convert NCT IDs to clickable links
                 df["Link"] = df["NCT ID"].apply(
