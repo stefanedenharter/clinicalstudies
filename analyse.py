@@ -108,7 +108,7 @@ if st.session_state.df is not None:
     # --- Sort and deduplicate after filtering, assign row numbers ---
     df = df.sort_values(by=["Start", "End"]).drop_duplicates(subset=["NCT ID"], keep="first").reset_index(drop=True)
     df["#"] = range(1, len(df) + 1)
-    df["Bar Label"] = df.apply(lambda row: f"{row['NCT ID']} ({row['#']})", axis=1)
+    df["Bar Label"] = df.apply(lambda row: f"{row['NCT ID']} (#{row['#']})", axis=1)
 
     # --- Download buttons for CSV and Excel (TOP RIGHT) ---
     csv = df.to_csv(index=False).encode('utf-8')
