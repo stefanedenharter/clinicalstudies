@@ -73,7 +73,7 @@ if st.button("Search"):
                                 i, row["NCT ID"], va='center', ha='center', fontsize=7, color="black")
 
                     ax.set_yticks(range(len(df_chart)))
-                    ax.set_yticklabels(df_chart["Title"], fontsize=7)
+                    ax.set_yticks([])  # Remove tick marks and labels on the y-axis
                     ax.set_xlabel("Date")
                     ax.set_title("Study Duration (Start to Completion)")
                     st.pyplot(fig)
