@@ -38,7 +38,7 @@ if st.button("Search"):
                     last_verified = status_mod.get("lastUpdatePostDateStruct", {}).get("date", "")
                     link = f"https://clinicaltrials.gov/study/{nct_id}"
 
-                    records.append((nct_id, title, sponsor, status, start_date, end_date, link))
+                    records.append((nct_id, title, sponsor, status, start_date, end_date, last_verified, link))
                 except Exception:
                     continue
 
