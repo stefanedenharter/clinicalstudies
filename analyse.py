@@ -42,58 +42,12 @@ if st.button("Search"):
                     start_date = status_mod.get("startDateStruct", {}).get("date", "")
                     end_date = status_mod.get("completionDateStruct", {}).get("date", "")
                     last_verified = status_mod.get("lastUpdatePostDateStruct", {}).get("date", "")
-                    enrollment_module = design_mod.get("enrollmentModule", {})
-                    st.json(enrollment_module)
-                    link = f"https://clinicaltrials.gov/study/{nct_id}"
-                    
-                    # -- Optional fields you may want to use later:
-                    
-                    # from identificationModule
-                    # org_study_id = id_mod.get("orgStudyId", "")
-                    # acronym = id_mod.get("acronym", "")
-                    # brief_summary = id_mod.get("briefSummary", "")
-                    
-                    # from statusModule
-                    # study_first_submitted = status_mod.get("studyFirstSubmitDateStruct", {}).get("date", "")
-                    # study_first_posted = status_mod.get("studyFirstPostDateStruct", {}).get("date", "")
-                    # last_update_submitted = status_mod.get("lastUpdateSubmitDateStruct", {}).get("date", "")
-                    # last_update_posted = status_mod.get("lastUpdatePostDateStruct", {}).get("date", "")
-                    # completion_date_type = status_mod.get("completionDateStruct", {}).get("type", "")
-                    # start_date_type = status_mod.get("startDateStruct", {}).get("type", "")
-                    
-                    # from sponsorCollaboratorsModule
-                    # collaborator_names = [c.get("name", "") for c in sponsor_mod.get("collaborators", [])]
-                    
-                    # from designModule
-                    # study_type = design_mod.get("studyType", "")
-                    # allocation = design_mod.get("allocation", "")
-                    # intervention_model = design_mod.get("interventionModel", "")
-                    # primary_purpose = design_mod.get("primaryPurpose", "")
-                    # masking = design_mod.get("masking", "")
-                    
-                    # from descriptionModule
-                    # detailed_description = sec.get("descriptionModule", {}).get("detailedDescription", "")
-                    
-                    # from eligibilityModule
-                    # eligibility_mod = sec.get("eligibilityModule", {})
-                    # gender = eligibility_mod.get("sex", "")
-                    # minimum_age = eligibility_mod.get("minimumAge", "")
-                    # maximum_age = eligibility_mod.get("maximumAge", "")
-                    # eligibility_criteria = eligibility_mod.get("eligibilityCriteria", "")
-                    
-                    # from contactsLocationsModule
-                    # locations = sec.get("contactsLocationsModule", {}).get("locations", [])
-                    
-                    # from conditionsModule
-                    # conditions = sec.get("conditionsModule", {}).get("conditions", [])
-                    
-                    # from interventionsModule
-                    # interventions = sec.get("interventionsModule", {}).get("interventions", [])
-                    
-                    # from armsInterventionsModule
-                    # arms = sec.get("armsInterventionsModule", {}).get("arms", [])
+                    study_type = design_mod.get("studyType", "")
 
-                    records.append((nct_id, title, sponsor, status, start_date, end_date, last_verified, enrollment, link))
+                    # enrollment = design_mod.get("enrollmentModule", {}).get("enrollmentCount", "")  # Optional: enable later
+                    link = f"https://clinicaltrials.gov/study/{nct_id}"
+
+                    records.append((nct_id, title, sponsor, status, start_date, end_date, last_verified, study_type, link))
                 except Exception:
                     continue
 
@@ -102,10 +56,10 @@ if st.button("Search"):
             else:
                 # Build DataFrame
                 df = pd.DataFrame(records, columns=[
-                    "NCT ID", "Title", "Sponsor", "Status", "Start", "End", "Last Verified", "Enrollment", "Link"
+                    "NCT ID", "Title", "Sponsor", "Status", "Start", "End", "Last Verified", "Study Type", "Link"
                 ])
 
-                # Convert partial dates (YYYY-MM) to complete ones (YYYY-MM-01)
+                # Normalize partial dates (YYYY-MM → YYYY-MM-01)
                 def normalize_date(date_str):
                     if isinstance(date_str, str) and len(date_str) == 7:
                         date_str += "-01"
@@ -121,12 +75,12 @@ if st.button("Search"):
                     lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
                 )
 
-                # Display table at the top
-                df_display = df[["Link", "Title", "Sponsor", "Status", "Start", "End", "Last Verified", "Enrollment"]]
+                # Display table with added Study Type
+                df_display = df[["Link", "Title", "Sponsor", "Status", "Study Type", "Start", "End", "Last Verified"]]
                 st.markdown("### 🧾 Search Results")
                 st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-                # Custom color scheme for study statuses
+                # Define custom colors by status
                 custom_colors = {
                     "RECRUITING": "blue",
                     "COMPLETED": "green",
@@ -147,11 +101,12 @@ if st.button("Search"):
                     y="NCT ID",
                     color="Status",
                     color_discrete_map=custom_colors,
-                    hover_data=["Title", "Sponsor", "Status", "Enrollment"],
+                    hover_data=["Title", "Sponsor", "Status", "Study Type"],
                     custom_data=["Link"]
+                    # ,hover_data=["Enrollment"]  # Optional: enable later
                 )
 
-                # Format bar labels (NCT IDs)
+                # Format NCT ID labels inside bars
                 fig.update_traces(
                     text=df["NCT ID"],
                     textposition="inside",
@@ -160,7 +115,7 @@ if st.button("Search"):
                     textfont=dict(size=16, color="white", family="Arial")
                 )
 
-                # Chart layout styling
+                # Style chart layout
                 fig.update_layout(
                     showlegend=True,
                     xaxis=dict(
@@ -184,9 +139,9 @@ if st.button("Search"):
                     height=40 * len(df) + 200
                 )
 
-                # Add outer frame (top + right lines)
+                # Add chart frame
                 fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
                 fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
 
-                # Render the chart
+                # Render chart
                 st.plotly_chart(fig, use_container_width=True)
