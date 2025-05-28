@@ -17,7 +17,7 @@ df = df.sort_values(by=["Start", "End"]).reset_index(drop=True)
 df["#"] = range(1, len(df) + 1)
 df["Bar Label"] = df.apply(lambda row: f"{row['NCT ID']} ({row['#']})", axis=1)
 
-# Table
+# Table display
 st.write(df[["#", "NCT ID", "Title", "Status", "Start", "End"]])
 
 # Plotly Timeline
@@ -31,13 +31,14 @@ fig = px.timeline(
     df,
     x_start="Start",
     x_end="End",
-    y="Bar Label",  # Categorical Y-axis
+    y="Bar Label",            # Categorical Y-axis
     color="Status",
     color_discrete_map=custom_colors,
     hover_data=["Bar Label", "NCT ID", "Title", "Status"],
+    text="Bar Label"          # <-- THE CRUCIAL FIX!
 )
+
 fig.update_traces(
-    text=df["Bar Label"],
     textposition="inside",
     insidetextanchor="middle"
 )
