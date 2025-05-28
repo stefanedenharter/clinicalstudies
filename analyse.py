@@ -118,7 +118,7 @@ if st.session_state.df is not None:
     ]]
     st.markdown("### 🧾 Search Results")
     st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
-
+    st.dataframe(df_display)
     # ------------- TIMELINE CHART -------------
     st.markdown("### 📊 Study Timeline")
 
