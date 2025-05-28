@@ -75,7 +75,24 @@ if st.button("Search"):
 
                 # Date filter (only if valid dates exist)
                 if not df["Start"].isna().all():
-                    min_date, max_date = df["Start"].min(), df["Start"].max()
+                    min_date_raw = df["Start"].min()
+max_date_raw = df["Start"].max()
+
+# Ensure valid datetime values (Streamlit expects Python datetime, not pandas Timestamp)
+if pd.notnull(min_date_raw) and pd.notnull(max_date_raw):
+    min_date = min_date_raw.to_pydatetime()
+    max_date = max_date_raw.to_pydatetime()
+
+    start_range = st.slider(
+        "Start Date Range",
+        min_value=min_date,
+        max_value=max_date,
+        value=(min_date, max_date)
+    )
+
+    df = df[df["Start"].between(start_range[0], start_range[1])]
+else:
+    st.warning("No valid start dates found to use in the slider.")
                     start_range = st.slider(
                         "Start Date Range",
                         min_value=min_date,
