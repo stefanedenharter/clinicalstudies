@@ -71,6 +71,7 @@ if st.button("Search"):
 
                 # Plotly timeline chart
                 st.markdown("### 📊 Interactive Study Timeline")
+                
                 fig = px.timeline(
                     df,
                     x_start="Start",
@@ -80,19 +81,32 @@ if st.button("Search"):
                     hover_data=["Title", "Sponsor", "Status"],
                     custom_data=["Link"]
                 )
-
+                
+                # Center text in bars and style it
                 fig.update_traces(
                     text=df["NCT ID"],
                     textposition="inside",
-                    marker_line_width=0
+                    insidetextanchor="middle",
+                    marker_line_width=0,
+                    textfont=dict(
+                        size=16,         # Increased font size
+                        color="white",
+                        family="Arial",
+                    )
                 )
+                
+                # Layout tweaks
                 fig.update_layout(
-                    yaxis_title="",
-                    xaxis_title="Date",
-                    hoverlabel_align="left",
+                    showlegend=True,
+                    xaxis_title=None,
+                    yaxis_title=None,
+                    xaxis_showticklabels=True,
+                    yaxis_showticklabels=True,
+                    hoverlabel=dict(font_size=14, font_family="Arial"),
+                    font=dict(size=16, family="Arial", color="black"),  # global font settings
                     margin=dict(l=20, r=20, t=40, b=40),
                     height=40 * len(df) + 200
                 )
-
-                # Show the chart
+                
                 st.plotly_chart(fig, use_container_width=True)
+
