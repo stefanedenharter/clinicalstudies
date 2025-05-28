@@ -4,14 +4,20 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 
+# ------------- PAGE SETUP -------------
 st.set_page_config(layout="wide")
 st.title("🚑 Clinical Trials Explorer")
 
-query = st.text_input("Enter a device name, condition or keyword (e.g., BPH, prostate cancer):", "")
+# ------------- SEARCH INPUT -------------
+query = st.text_input(
+    "Enter a condition or keyword (e.g., BPH, prostate cancer):", "BPH"
+)
 
+# --- Keep search results in memory so filters don’t break UX ---
 if "df" not in st.session_state:
     st.session_state.df = None
 
+# ------------- DATA FETCHING FROM API -------------
 if st.button("Search"):
     with st.spinner("Fetching data from ClinicalTrials.gov..."):
         url = f"https://clinicaltrials.gov/api/v2/studies?query.term={query}&pageSize=30"
@@ -21,7 +27,8 @@ if st.button("Search"):
             studies = response.json().get("studies", [])
             records = []
 
-            for i, study in enumerate(studies, start=1):
+            # --- Extract selected fields from each study for our DataFrame ---
+            for study in studies:
                 try:
                     sec = study.get("protocolSection", {})
                     id_mod = sec.get("identificationModule", {})
@@ -41,17 +48,19 @@ if st.button("Search"):
                     link = f"https://clinicaltrials.gov/study/{nct_id}"
 
                     records.append((
-                        i, nct_id, title, sponsor, status, study_type,
+                        nct_id, title, sponsor, status, study_type,
                         company_id, start_date, end_date, last_verified, link
                     ))
                 except Exception:
                     continue
 
+            # --- Create DataFrame for all studies ---
             df = pd.DataFrame(records, columns=[
-                "#", "NCT ID", "Title", "Sponsor", "Status", "Study Type",
+                "NCT ID", "Title", "Sponsor", "Status", "Study Type",
                 "Company Study ID", "Start", "End", "Last Verified", "Link"
             ])
 
+            # --- Convert start/end dates to datetime for sorting and plotting ---
             def normalize_date(date_str):
                 if isinstance(date_str, str) and len(date_str) == 7:
                     date_str += "-01"
@@ -59,20 +68,31 @@ if st.button("Search"):
 
             df["Start"] = df["Start"].apply(normalize_date)
             df["End"] = df["End"].apply(normalize_date)
-            df = df.dropna(subset=["Start", "End"])
-            df = df.sort_values(by="#")  # Always sort by running number!
+            df = df.dropna(subset=["Start", "End"])  # Only keep studies with valid dates
 
+            # --- Sort first by Start Date for better timeline sense ---
+            df = df.sort_values(by=["Start", "End"]).reset_index(drop=True)
+
+            # --- Assign row numbers after sorting by start date ---
+            df["#"] = range(1, len(df) + 1)
+
+            # --- Bar label combines NCT ID and running number for clear mapping ---
+            df["Bar Label"] = df.apply(lambda row: f"{row['NCT ID']} ({row['#']})", axis=1)
+
+            # --- Turn NCT IDs into clickable links for table ---
             df["Link"] = df["NCT ID"].apply(
                 lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
             )
 
-            st.session_state.df = df
+            st.session_state.df = df  # Store results for use with filters
         else:
             st.error("Failed to fetch data. Try again later.")
 
+# ------------- FILTERS & DATA DISPLAY -------------
 if st.session_state.df is not None:
-    df = st.session_state.df.copy()
+    df = st.session_state.df.copy()  # Work with a copy to allow re-filtering
 
+    # --- Show filters side-by-side for Sponsor and Study Type ---
     col1, col2 = st.columns(2)
     with col1:
         sponsors = sorted(df["Sponsor"].dropna().unique())
@@ -85,12 +105,12 @@ if st.session_state.df is not None:
         if type_filter != "All":
             df = df[df["Study Type"] == type_filter]
 
-    # Reassign row numbers and bar labels after filtering
-    df = df.sort_values(by=["#"])  # Ensure correct order before numbering!
+    # --- After filtering, sort again by Start Date and assign new row numbers ---
+    df = df.sort_values(by=["Start", "End"]).reset_index(drop=True)
     df["#"] = range(1, len(df) + 1)
     df["Bar Label"] = df.apply(lambda row: f"{row['NCT ID']} ({row['#']})", axis=1)
 
-    # Display results table (sorted by running number)
+    # --- Build table for display ---
     df_display = df[[
         "#", "Link", "Title", "Sponsor", "Status", "Study Type",
         "Company Study ID", "Start", "End", "Last Verified"
@@ -98,9 +118,10 @@ if st.session_state.df is not None:
     st.markdown("### 🧾 Search Results")
     st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-    # Timeline visualization
+    # ------------- TIMELINE CHART -------------
     st.markdown("### 📊 Study Timeline")
 
+    # --- Custom color palette for study status ---
     custom_colors = {
         "RECRUITING": "blue",
         "COMPLETED": "green",
@@ -111,9 +132,10 @@ if st.session_state.df is not None:
         "WITHDRAWN": "brown"
     }
 
-    # Y-axis in plot must match the table order!
+    # --- Keep plot order in sync with table by using Bar Label as y ---
     bar_labels = df["Bar Label"].tolist()
 
+    # --- Create Plotly Gantt/timeline chart ---
     fig = px.timeline(
         df,
         x_start="Start",
@@ -121,11 +143,12 @@ if st.session_state.df is not None:
         y="Bar Label",
         color="Status",
         color_discrete_map=custom_colors,
-        category_orders={"Bar Label": bar_labels},
+        category_orders={"Bar Label": bar_labels},  # Force order!
         hover_data=["NCT ID", "Title", "Sponsor", "Status", "Study Type", "Company Study ID"],
         custom_data=["Link"]
     )
 
+    # --- Text inside bars: show "NCT ID (#)" ---
     fig.update_traces(
         text=df["Bar Label"],
         textposition="inside",
@@ -134,7 +157,7 @@ if st.session_state.df is not None:
         textfont=dict(size=16, color="white", family="Arial")
     )
 
-    # Add a vertical line for today (as ISO string)
+    # --- Add a vertical "today" line (as ISO string for safest date handling) ---
     today = datetime.today().date().isoformat()
     fig.add_vline(
         x=today,
@@ -143,6 +166,7 @@ if st.session_state.df is not None:
         line_color="red"
     )
 
+    # --- Layout, fonts, colors, etc ---
     fig.update_layout(
         showlegend=True,
         xaxis=dict(
@@ -165,7 +189,7 @@ if st.session_state.df is not None:
         margin=dict(l=20, r=20, t=40, b=40),
         height=40 * len(df) + 200
     )
-
+    # --- Strong black frame on plot ---
     fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
     fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
     fig.update_yaxes(autorange="reversed")  # Ensures chart order matches table
