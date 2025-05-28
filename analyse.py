@@ -110,6 +110,32 @@ if st.session_state.df is not None:
     df["#"] = range(1, len(df) + 1)
     df["Bar Label"] = df.apply(lambda row: f"{row['NCT ID']} ({row['#']})", axis=1)
 
+    # --- Download buttons for CSV and Excel (TOP RIGHT) ---
+    csv = df.to_csv(index=False).encode('utf-8')
+    excel_buffer = io.BytesIO()
+    with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Studies')
+    excel_data = excel_buffer.getvalue()
+
+    # Three columns: [empty, CSV, Excel] - buttons right-aligned
+    col_dl1, col_dl2, col_dl3 = st.columns([6, 1, 1])
+    with col_dl2:
+        st.download_button(
+            label="⬇️ Download CSV",
+            data=csv,
+            file_name='clinical_trials.csv',
+            mime='text/csv',
+            key="csv_dl"
+        )
+    with col_dl3:
+        st.download_button(
+            label="⬇️ Download Excel",
+            data=excel_data,
+            file_name='clinical_trials.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            key="excel_dl"
+        )
+
     # --- Table for display ---
     df_display = df[[
         "#", "Link", "Title", "Sponsor", "Status", "Study Type",
@@ -117,27 +143,6 @@ if st.session_state.df is not None:
     ]]
     st.markdown("### 🧾 Search Results")
     st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
-
-    # --- Download buttons for CSV and Excel ---
-    csv = df.to_csv(index=False).encode('utf-8')
-    excel_buffer = io.BytesIO()
-    with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Studies')
-    excel_data = excel_buffer.getvalue()
-
-    st.download_button(
-        label="⬇️ Download CSV",
-        data=csv,
-        file_name='clinical_trials.csv',
-        mime='text/csv'
-    )
-
-    st.download_button(
-        label="⬇️ Download Excel",
-        data=excel_data,
-        file_name='clinical_trials.xlsx',
-        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
 
     # ------------- TIMELINE CHART -------------
     st.markdown("### 📊 Study Timeline")
