@@ -8,7 +8,7 @@ st.set_page_config(layout="wide")
 st.title("🧪 Clinical Trials Explorer")
 
 # User input
-query = st.text_input("Enter a device or condition (e.g., BPH, prostate cancer):", "")
+query = st.text_input("Enter a condition or keyword (e.g., BPH, prostate cancer):", "")
 
 if st.button("Search"):
     with st.spinner("Fetching data from ClinicalTrials.gov..."):
@@ -64,7 +64,7 @@ if st.button("Search"):
                 st.markdown("### 🧾 Search Results")
                 st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-                st.markdown("### 📊 Clinical Study Timeline")
+                st.markdown("### 📊 Interactive Study Timeline")
 
                 # Custom status color map
                 custom_colors = {
