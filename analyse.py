@@ -3,25 +3,29 @@ import requests
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
-from io import BytesIO
 
+# Set page layout
 st.set_page_config(layout="wide")
 st.title("🧪 Clinical Trials Explorer")
 
-# Input for clinical condition
+# Text input for clinical condition search
 query = st.text_input("Enter a condition or keyword (e.g., BPH, prostate cancer):", "BPH")
 
+# Start search on button click
 if st.button("Search"):
     with st.spinner("Fetching data from ClinicalTrials.gov..."):
+
+        # Call ClinicalTrials.gov API
         url = f"https://clinicaltrials.gov/api/v2/studies?query.term={query}&pageSize=30"
         response = requests.get(url)
 
         if response.status_code != 200:
-            st.error("Failed to fetch data.")
+            st.error("Failed to fetch data. Try again later.")
         else:
             data = response.json()
             studies = data.get("studies", [])
 
+            # Extract relevant fields from each study
             records = []
             for i, study in enumerate(studies, start=1):
                 try:
@@ -52,12 +56,13 @@ if st.button("Search"):
             if not records:
                 st.warning("No results found.")
             else:
+                # Build DataFrame
                 df = pd.DataFrame(records, columns=[
                     "#", "NCT ID", "Title", "Sponsor", "Status", "Study Type",
                     "Company Study ID", "Start", "End", "Last Verified", "Link"
                 ])
 
-                # Convert partial date strings to datetime
+                # Normalize partial dates (e.g. YYYY-MM) to YYYY-MM-01
                 def normalize_date(date_str):
                     if isinstance(date_str, str) and len(date_str) == 7:
                         date_str += "-01"
@@ -68,65 +73,20 @@ if st.button("Search"):
                 df = df.dropna(subset=["Start", "End"])
                 df = df.sort_values(by="Status")
 
-                # Filter: Sponsor
-                sponsors = sorted(df["Sponsor"].dropna().unique())
-                sponsor_filter = st.selectbox("Filter by Sponsor", options=["All"] + sponsors)
-                if sponsor_filter != "All":
-                    df = df[df["Sponsor"] == sponsor_filter]
-
-                # Filter: Start Date Range
-                min_date_raw = df["Start"].min()
-                max_date_raw = df["Start"].max()
-
-                if pd.notnull(min_date_raw) and pd.notnull(max_date_raw):
-                    min_date = min_date_raw.to_pydatetime()
-                    max_date = max_date_raw.to_pydatetime()
-
-                    start_range = st.slider(
-                        "Start Date Range",
-                        min_value=min_date,
-                        max_value=max_date,
-                        value=(min_date, max_date)
-                    )
-
-                    df = df[df["Start"].between(start_range[0], start_range[1])]
-                else:
-                    st.warning("No valid start dates available for filtering.")
-
-                # Excel download using BytesIO
-                output = BytesIO()
-                with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                    df.drop(columns=["Link"]).to_excel(writer, index=False)
-                output.seek(0)
-
-                st.download_button(
-                    label="📥 Download Results as Excel",
-                    data=output,
-                    file_name="clinical_trials.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-
-                # Make row number and NCT ID clickable
-                df["#"] = df.apply(lambda row: f'<a href="https://clinicaltrials.gov/study/{row["NCT ID"]}" target="_blank">{row["#"]}</a>', axis=1)
+                # Convert NCT IDs to clickable links
                 df["Link"] = df["NCT ID"].apply(
                     lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
                 )
 
+                # Display table with running number
                 df_display = df[[
                     "#", "Link", "Title", "Sponsor", "Status", "Study Type",
                     "Company Study ID", "Start", "End", "Last Verified"
                 ]]
-
                 st.markdown("### 🧾 Search Results")
                 st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-                # Label for timeline bars (NCT ID + row number)
-                df["Bar Label"] = df.apply(
-                    lambda row: f"{row['NCT ID']} ({row['#'].split('>')[1].split('<')[0]})",
-                    axis=1
-                )
-
-                # Custom color scheme
+                # Custom color mapping
                 custom_colors = {
                     "RECRUITING": "blue",
                     "COMPLETED": "green",
@@ -139,6 +99,10 @@ if st.button("Search"):
 
                 st.markdown("### 📊 Study Timeline")
 
+                # Add label for display in bar (e.g., "NCT12345678 (1)")
+                df["Bar Label"] = df.apply(lambda row: f"{row['NCT ID']} ({row['#']})", axis=1)
+
+                # Plotly Gantt-style chart
                 fig = px.timeline(
                     df,
                     x_start="Start",
