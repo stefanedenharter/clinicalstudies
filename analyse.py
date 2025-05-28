@@ -44,7 +44,7 @@ if st.button("Search"):
                     last_verified = status_mod.get("lastUpdatePostDateStruct", {}).get("date", "")
                     study_type = design_mod.get("studyType", "")
                     other_id = id_mod.get("orgStudyIdInfo", {}).get("id", "")
-                    enrollment = str(design_mod.get("enrollmentModule", {}).get("enrollmentCount", ""))
+                    enrollment = design_mod.get("enrollmentModule", {}).get("enrollmentCount", "")
 
                     link = f"https://clinicaltrials.gov/study/{nct_id}"
 
