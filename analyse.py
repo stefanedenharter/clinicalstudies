@@ -5,10 +5,9 @@ import plotly.express as px
 from datetime import datetime
 
 st.set_page_config(layout="wide")
-st.title("🧪 Clinical Trials Explorer")
+st.title("🧪 Clinical Trials Explorer (Interactive)")
 
-# User input
-query = st.text_input("Enter a condition or keyword (e.g., BPH, prostate cancer):", "")
+query = st.text_input("Enter a condition or keyword (e.g., BPH, prostate cancer):", "BPH")
 
 if st.button("Search"):
     with st.spinner("Fetching data from ClinicalTrials.gov..."):
@@ -45,7 +44,9 @@ if st.button("Search"):
             if not records:
                 st.warning("No results found.")
             else:
-                df = pd.DataFrame(records, columns=["NCT ID", "Title", "Sponsor", "Status", "Start", "End", "Link"])
+                df = pd.DataFrame(records, columns=[
+                    "NCT ID", "Title", "Sponsor", "Status", "Start", "End", "Last Verified", "Link"
+                ])
 
                 def normalize_date(date_str):
                     if isinstance(date_str, str) and len(date_str) == 7:
@@ -57,17 +58,16 @@ if st.button("Search"):
                 df = df.dropna(subset=["Start", "End"])
                 df = df.sort_values(by="Status")
 
-                # Hyperlink formatting
                 df["Link"] = df["NCT ID"].apply(
                     lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
                 )
-                df_display = df[["Link", "Title", "Sponsor", "Status", "Start", "End"]]
+
+                df_display = df[["Link", "Title", "Sponsor", "Status", "Start", "End", "Last Verified"]]
                 st.markdown("### 🧾 Search Results")
                 st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
                 st.markdown("### 📊 Interactive Study Timeline")
 
-                # Custom status color map
                 custom_colors = {
                     "RECRUITING": "blue",
                     "COMPLETED": "green",
@@ -94,14 +94,9 @@ if st.button("Search"):
                     textposition="inside",
                     insidetextanchor="middle",
                     marker_line_width=0,
-                    textfont=dict(
-                        size=16,
-                        color="white",
-                        family="Arial",
-                    )
+                    textfont=dict(size=16, color="white", family="Arial")
                 )
 
-                # Final layout styling
                 fig.update_layout(
                     showlegend=True,
                     xaxis=dict(
@@ -109,11 +104,11 @@ if st.button("Search"):
                         showticklabels=True,
                         showline=True,
                         linecolor="black",
-                        tickfont=dict(size=18, family="Arial", color="black")  # 2 steps larger
+                        tickfont=dict(size=18, family="Arial", color="black")
                     ),
                     yaxis=dict(
                         title=None,
-                        showticklabels=False,  # removed y-axis labels
+                        showticklabels=False,
                         showline=True,
                         linecolor="black"
                     ),
@@ -125,7 +120,6 @@ if st.button("Search"):
                     height=40 * len(df) + 200
                 )
 
-                # Add a clean border/frame
                 fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
                 fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
 
