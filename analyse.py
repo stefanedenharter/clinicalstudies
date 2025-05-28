@@ -117,6 +117,28 @@ if st.session_state.df is not None:
     st.markdown("### 🧾 Search Results")
     st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
+    # --- Download buttons ---
+    import io
+    csv = df.to_csv(index=False).encode('utf-8')
+    excel_buffer = io.BytesIO()
+    with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Studies')
+    excel_data = excel_buffer.getvalue()
+
+    st.download_button(
+        label="⬇️ Download CSV",
+        data=csv,
+        file_name='clinical_trials.csv',
+        mime='text/csv'
+    )
+
+    st.download_button(
+        label="⬇️ Download Excel",
+        data=excel_data,
+        file_name='clinical_trials.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
     # ------------- TIMELINE CHART -------------
     st.markdown("### 📊 Study Timeline")
     custom_colors = {
