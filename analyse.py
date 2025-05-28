@@ -44,7 +44,8 @@ if st.button("Search"):
                     last_verified = status_mod.get("lastUpdatePostDateStruct", {}).get("date", "")
                     study_type = design_mod.get("studyType", "")
                     other_id = id_mod.get("orgStudyIdInfo", {}).get("id", "")
-                    enrollment = design_mod.get("enrollmentModule", {}).get("enrollmentCount", "")
+                    enrollment_raw = design_mod.get("enrollmentModule", {}).get("enrollmentCount", None)
+                    enrollment = str(enrollment_raw) if enrollment_raw is not None else "N/A"
 
                     link = f"https://clinicaltrials.gov/study/{nct_id}"
 
