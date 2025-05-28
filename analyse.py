@@ -45,6 +45,9 @@ if st.button("Search"):
                     enrollment_info = design_mod.get("enrollmentModule", {})
                     enrollment = enrollment_info.get("enrollmentCount", "")
                     link = f"https://clinicaltrials.gov/study/{nct_id}"
+
+                    if not enrollment:
+                        enrollment = "n/a"
                     
                     # -- Optional fields you may want to use later:
                     
