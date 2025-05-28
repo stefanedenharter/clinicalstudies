@@ -50,7 +50,7 @@ if st.button("Search"):
 
                     # enrollment = design_mod.get("enrollmentModule", {}).get("enrollmentCount", "")  # Optional: enable later
                     link = f"https://clinicaltrials.gov/study/{nct_id}"
-
+st.write("Keys in identificationModule:", list(id_mod.keys()))
                     records.append((nct_id, title, sponsor, status, start_date, end_date, last_verified, study_type, other_ids, link))
                 except Exception:
                     continue
