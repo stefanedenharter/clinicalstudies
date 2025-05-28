@@ -50,7 +50,7 @@ if st.button("Search"):
                     link = f"https://clinicaltrials.gov/study/{nct_id}"
 
                     records.append((nct_id, title, sponsor, status, start_date, end_date,
-                                    last_verified, study_type, other_id, enrollment, link))
+                                    last_verified, study_type, other_id, enrollment_raw, link))
                 except Exception:
                     continue
 
