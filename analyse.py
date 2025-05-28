@@ -89,7 +89,7 @@ if st.button("Search"):
                                 i, row["NCT ID"], va='center', ha='center', fontsize=7, color="white")
 
                     ax.set_yticks([])  # Hide study titles
-                    //ax.set_xlabel("Date")
+                    ax.set_xlabel("Date")
 
 
                     # Legend below chart with extra space
@@ -99,7 +99,7 @@ if st.button("Search"):
                     ]
                     
                     # Expand the bottom margin to fit the legend cleanly
-                    fig.subplots_adjust(bottom=0.3)  # Increased from 0.2 to 0.3
+                    fig.subplots_adjust(bottom=0.4)  # Increased from 0.2 to 0.3
                     
                     # Move legend down slightly to avoid x-axis label overlap
                     ax.legend(
