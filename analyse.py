@@ -7,7 +7,7 @@ from datetime import datetime
 st.set_page_config(layout="wide")
 st.title("🚑 Clinical Trials Explorer")
 
-query = st.text_input("Enter a condition or keyword (e.g., BPH, prostate cancer):", "BPH")
+query = st.text_input("Enter a device name, condition or keyword (e.g., BPH, prostate cancer):", "")
 
 if "df" not in st.session_state:
     st.session_state.df = None
