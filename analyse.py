@@ -60,7 +60,7 @@ if st.button("Search"):
                 # Build DataFrame
                 df = pd.DataFrame(records, columns=[
                     "NCT ID", "Title", "Sponsor", "Status", "Start", "End",
-                    "Last Verified", "Study Type", "Other Study ID", "Enrollment", "Link"
+                    "Last Verified", "Study Type", "Company Study ID", "Enrollment", "Link"
                 ])
 
                 # Normalize partial dates (YYYY-MM → YYYY-MM-01)
