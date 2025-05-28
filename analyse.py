@@ -11,21 +11,17 @@ st.title("🧪 Clinical Trials Explorer")
 # Text input for clinical condition search
 query = st.text_input("Enter a device name, company, ... (e.g., iTind, Tigertriever):", "")
 
-# Start search on button click
 if st.button("Search"):
     with st.spinner("Fetching data from ClinicalTrials.gov..."):
-
-        # Call ClinicalTrials.gov API
         url = f"https://clinicaltrials.gov/api/v2/studies?query.term={query}&pageSize=30"
         response = requests.get(url)
 
         if response.status_code != 200:
-            st.error("Failed to fetch data. Try again later.")
+            st.error("Failed to fetch data.")
         else:
             data = response.json()
             studies = data.get("studies", [])
 
-            # Extract relevant fields from each study
             records = []
             for i, study in enumerate(studies, start=1):
                 try:
@@ -56,13 +52,11 @@ if st.button("Search"):
             if not records:
                 st.warning("No results found.")
             else:
-                # Build DataFrame
                 df = pd.DataFrame(records, columns=[
                     "#", "NCT ID", "Title", "Sponsor", "Status", "Study Type",
                     "Company Study ID", "Start", "End", "Last Verified", "Link"
                 ])
 
-                # Normalize partial dates (e.g. YYYY-MM) to YYYY-MM-01
                 def normalize_date(date_str):
                     if isinstance(date_str, str) and len(date_str) == 7:
                         date_str += "-01"
@@ -73,20 +67,37 @@ if st.button("Search"):
                 df = df.dropna(subset=["Start", "End"])
                 df = df.sort_values(by="Status")
 
-                # Convert NCT IDs to clickable links
+                # -------- Filters --------
+                sponsors = sorted(df["Sponsor"].dropna().unique())
+                sponsor_filter = st.selectbox("Filter by Sponsor", options=["All"] + sponsors)
+                if sponsor_filter != "All":
+                    df = df[df["Sponsor"] == sponsor_filter]
+
+                min_date, max_date = df["Start"].min(), df["Start"].max()
+                start_range = st.slider("Start Date Range", min_value=min_date, max_value=max_date,
+                                        value=(min_date, max_date))
+                df = df[df["Start"].between(start_range[0], start_range[1])]
+
+                # -------- Export --------
+                st.download_button("📥 Download Results as Excel", df.drop(columns=["Link"]), file_name="clinical_trials.xlsx")
+
+                # -------- Table --------
+                df["#"] = df.apply(lambda row: f'<a href="https://clinicaltrials.gov/study/{row["NCT ID"]}" target="_blank">{row["#"]}</a>', axis=1)
                 df["Link"] = df["NCT ID"].apply(
                     lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
                 )
-
-                # Display table with running number
                 df_display = df[[
                     "#", "Link", "Title", "Sponsor", "Status", "Study Type",
                     "Company Study ID", "Start", "End", "Last Verified"
                 ]]
+
                 st.markdown("### 🧾 Search Results")
                 st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-                # Custom color mapping
+                # -------- Chart --------
+                st.markdown("### 📊 Study Timeline")
+                df["Bar Label"] = df.apply(lambda row: f"{row['NCT ID']} ({row['#'].split('>')[1].split('<')[0]})", axis=1)
+
                 custom_colors = {
                     "RECRUITING": "blue",
                     "COMPLETED": "green",
@@ -97,12 +108,6 @@ if st.button("Search"):
                     "WITHDRAWN": "brown"
                 }
 
-                st.markdown("### 📊 Study Timeline")
-
-                # Add label for display in bar (e.g., "NCT12345678 (1)")
-                df["Bar Label"] = df.apply(lambda row: f"{row['NCT ID']} ({row['#']})", axis=1)
-
-                # Plotly Gantt-style chart
                 fig = px.timeline(
                     df,
                     x_start="Start",
