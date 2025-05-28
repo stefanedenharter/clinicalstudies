@@ -38,13 +38,17 @@ if st.button("Search"):
                     end_date = status_mod.get("completionDateStruct", {}).get("date", "")
 
                     records.append((nct_id, title, sponsor, status, start_date, end_date))
-                except Exception as e:
+                except Exception:
                     continue
 
             if not records:
                 st.warning("No results found.")
             else:
+                # Create DataFrame
                 df = pd.DataFrame(records, columns=["NCT ID", "Title", "Sponsor", "Status", "Start", "End"])
+
+                # Sort by status
+                df = df.sort_values(by="Status")
 
                 # Add hyperlinks to NCT IDs
                 df["Link"] = df["NCT ID"].apply(
@@ -55,7 +59,7 @@ if st.button("Search"):
                 st.markdown("### 🧾 Search Results")
                 st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-                # Prepare for chart
+                # Prepare chart data
                 df_chart = df.dropna(subset=["Start", "End"]).copy()
                 df_chart["Start"] = pd.to_datetime(df_chart["Start"], errors='coerce')
                 df_chart["End"] = pd.to_datetime(df_chart["End"], errors='coerce')
@@ -63,19 +67,37 @@ if st.button("Search"):
 
                 if not df_chart.empty:
                     st.markdown("### 📊 Study Duration Chart")
+
+                    # Define colors for status
+                    status_colors = {
+                        "RECRUITING": "tab:blue",
+                        "COMPLETED": "tab:green",
+                        "TERMINATED": "tab:red",
+                        "NOT YET RECRUITING": "tab:orange",
+                        "ACTIVE, NOT RECRUITING": "tab:purple",
+                        "UNKNOWN STATUS": "tab:gray",
+                        "WITHDRAWN": "tab:brown"
+                    }
+
                     fig, ax = plt.subplots(figsize=(10, len(df_chart) * 0.5))
 
                     for i, row in df_chart.iterrows():
                         duration = (row["End"] - row["Start"]).days
-                        ax.barh(i, duration, left=row["Start"], color="skyblue")
-                        # Text inside the bar
+                        color = status_colors.get(row["Status"].upper(), "tab:gray")
+                        ax.barh(i, duration, left=row["Start"], color=color)
                         ax.text(row["Start"] + pd.Timedelta(days=duration // 2),
-                                i, row["NCT ID"], va='center', ha='center', fontsize=7, color="black")
+                                i, row["NCT ID"], va='center', ha='center', fontsize=7, color="white")
 
-                    ax.set_yticks(range(len(df_chart)))
-                    ax.set_yticks([])  # Remove tick marks and labels on the y-axis
+                    ax.set_yticks([])  # Hide study titles
                     ax.set_xlabel("Date")
-                    ax.set_title("Study Duration (Start to Completion)")
+
+                    # Legend
+                    handles = [
+                        plt.Line2D([0], [0], color=color, lw=6, label=status.title())
+                        for status, color in status_colors.items()
+                    ]
+                    ax.legend(handles=handles, title="Study Status", loc="lower right", fontsize=8, title_fontsize=9)
+
                     st.pyplot(fig)
                 else:
                     st.info("No studies had valid dates for charting.")
