@@ -92,13 +92,26 @@ if st.button("Search"):
                     ax.set_xlabel("Date")
 
 
-                    # Legend below chart
+                    # Legend below chart with extra space
                     handles = [
                         plt.Line2D([0], [0], color=color, lw=6, label=status.title())
                         for status, color in status_colors.items()
                     ]
-                    fig.subplots_adjust(bottom=0.2)  # make space below the chart
-                    ax.legend(handles=handles, title="Study Status", loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=3, fontsize=8, title_fontsize=9)
+                    
+                    # Expand the bottom margin to fit the legend cleanly
+                    fig.subplots_adjust(bottom=0.3)  # Increased from 0.2 to 0.3
+                    
+                    # Move legend down slightly to avoid x-axis label overlap
+                    ax.legend(
+                        handles=handles,
+                        title="Study Status",
+                        loc='upper center',
+                        bbox_to_anchor=(0.5, -0.25),  # lower vertical anchor
+                        ncol=3,
+                        fontsize=8,
+                        title_fontsize=9
+                    )
+
                     st.pyplot(fig)
                 else:
                     st.info("No studies had valid dates for charting.")
