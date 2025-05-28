@@ -51,7 +51,7 @@ if st.button("Search"):
                     enrollment = str(design_mod.get("enrollmentInfo", {}).get("count", "N/A"))
 
                     link = f"https://clinicaltrials.gov/study/{nct_id}"
-
+print(study.get("protocolSection", {}).get("designModule", {}))
                     records.append((
                         nct_id, title, sponsor, status, study_type,
                         company_id, start_date, end_date, last_verified, enrollment, link
