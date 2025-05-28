@@ -158,6 +158,7 @@ if st.session_state.df is not None:
         marker_line_width=0,
         textfont=dict(size=16, color="white", family="Arial")
     )
+assert df["Bar Label"].is_unique, "Bar Label is NOT unique!"
 
     # --- Add a vertical "today" line (as ISO string for safest date handling) ---
     today = datetime.today().date().isoformat()
