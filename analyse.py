@@ -43,18 +43,12 @@ if st.button("Search"):
                     end_date = status_mod.get("completionDateStruct", {}).get("date", "")
                     last_verified = status_mod.get("lastUpdatePostDateStruct", {}).get("date", "")
                     study_type = design_mod.get("studyType", "")
-
-                    # Extract Company Study ID
                     company_id = id_mod.get("orgStudyIdInfo", {}).get("id", "")
-
-                    # Extract enrollment from enrollmentInfo
-                    enrollment = str(design_mod.get("enrollmentInfo", {}).get("count", "N/A"))
-
                     link = f"https://clinicaltrials.gov/study/{nct_id}"
-print(study.get("protocolSection", {}).get("designModule", {}))
+
                     records.append((
                         nct_id, title, sponsor, status, study_type,
-                        company_id, start_date, end_date, last_verified, enrollment, link
+                        company_id, start_date, end_date, last_verified, link
                     ))
                 except Exception:
                     continue
@@ -65,10 +59,10 @@ print(study.get("protocolSection", {}).get("designModule", {}))
                 # Build DataFrame
                 df = pd.DataFrame(records, columns=[
                     "NCT ID", "Title", "Sponsor", "Status", "Study Type",
-                    "Company Study ID", "Start", "End", "Last Verified", "Enrollment", "Link"
+                    "Company Study ID", "Start", "End", "Last Verified", "Link"
                 ])
 
-                # Normalize dates
+                # Normalize partial dates (e.g. YYYY-MM) to YYYY-MM-01
                 def normalize_date(date_str):
                     if isinstance(date_str, str) and len(date_str) == 7:
                         date_str += "-01"
@@ -79,20 +73,20 @@ print(study.get("protocolSection", {}).get("designModule", {}))
                 df = df.dropna(subset=["Start", "End"])
                 df = df.sort_values(by="Status")
 
-                # Add link HTML
+                # Convert NCT IDs to clickable links
                 df["Link"] = df["NCT ID"].apply(
                     lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
                 )
 
-                # Display table
+                # Display the table
                 df_display = df[[
                     "Link", "Title", "Sponsor", "Status", "Study Type",
-                    "Company Study ID", "Enrollment", "Start", "End", "Last Verified"
+                    "Company Study ID", "Start", "End", "Last Verified"
                 ]]
                 st.markdown("### 🧾 Search Results")
                 st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-                # Color map
+                # Custom color mapping
                 custom_colors = {
                     "RECRUITING": "blue",
                     "COMPLETED": "green",
@@ -103,8 +97,9 @@ print(study.get("protocolSection", {}).get("designModule", {}))
                     "WITHDRAWN": "brown"
                 }
 
-                # Chart
                 st.markdown("### 📊 Study Timeline")
+
+                # Plotly Gantt-style chart
                 fig = px.timeline(
                     df,
                     x_start="Start",
@@ -112,7 +107,7 @@ print(study.get("protocolSection", {}).get("designModule", {}))
                     y="NCT ID",
                     color="Status",
                     color_discrete_map=custom_colors,
-                    hover_data=["Title", "Sponsor", "Status", "Study Type", "Company Study ID", "Enrollment"],
+                    hover_data=["Title", "Sponsor", "Status", "Study Type", "Company Study ID"],
                     custom_data=["Link"]
                 )
 
