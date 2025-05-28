@@ -70,8 +70,6 @@ if st.button("Search"):
                 lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
             )
 
-            df["Bar Label"] = df.apply(lambda row: f"{row['NCT ID']} ({row['#']})", axis=1)
-
             st.session_state.df = df
         else:
             st.error("Failed to fetch data. Try again later.")
@@ -80,6 +78,7 @@ if st.button("Search"):
 if st.session_state.df is not None:
     df = st.session_state.df.copy()
 
+    # Filter layout
     col1, col2 = st.columns(2)
 
     with col1:
@@ -93,6 +92,10 @@ if st.session_state.df is not None:
         type_filter = st.selectbox("Filter by Study Type", ["All"] + study_types)
         if type_filter != "All":
             df = df[df["Study Type"] == type_filter]
+
+    # Reassign row numbers and bar labels after filtering
+    df["#"] = range(1, len(df) + 1)
+    df["Bar Label"] = df.apply(lambda row: f"{row['NCT ID']} ({row['#']})", axis=1)
 
     # Display results table
     df_display = df[[
