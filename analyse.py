@@ -27,7 +27,7 @@ if st.button("Search"):
 
             # Extract relevant fields from each study
             records = []
-            for study in studies:
+            for i, study in enumerate(studies, start=1):
                 try:
                     sec = study.get("protocolSection", {})
                     id_mod = sec.get("identificationModule", {})
@@ -47,7 +47,7 @@ if st.button("Search"):
                     link = f"https://clinicaltrials.gov/study/{nct_id}"
 
                     records.append((
-                        nct_id, title, sponsor, status, study_type,
+                        i, nct_id, title, sponsor, status, study_type,
                         company_id, start_date, end_date, last_verified, link
                     ))
                 except Exception:
@@ -58,7 +58,7 @@ if st.button("Search"):
             else:
                 # Build DataFrame
                 df = pd.DataFrame(records, columns=[
-                    "NCT ID", "Title", "Sponsor", "Status", "Study Type",
+                    "#", "NCT ID", "Title", "Sponsor", "Status", "Study Type",
                     "Company Study ID", "Start", "End", "Last Verified", "Link"
                 ])
 
@@ -78,9 +78,9 @@ if st.button("Search"):
                     lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
                 )
 
-                # Display the table
+                # Display table with running number
                 df_display = df[[
-                    "Link", "Title", "Sponsor", "Status", "Study Type",
+                    "#", "Link", "Title", "Sponsor", "Status", "Study Type",
                     "Company Study ID", "Start", "End", "Last Verified"
                 ]]
                 st.markdown("### 🧾 Search Results")
@@ -99,6 +99,9 @@ if st.button("Search"):
 
                 st.markdown("### 📊 Study Timeline")
 
+                # Add label for display in bar (e.g., "NCT12345678 (1)")
+                df["Bar Label"] = df.apply(lambda row: f"{row['NCT ID']} ({row['#']})", axis=1)
+
                 # Plotly Gantt-style chart
                 fig = px.timeline(
                     df,
@@ -112,7 +115,7 @@ if st.button("Search"):
                 )
 
                 fig.update_traces(
-                    text=df["NCT ID"],
+                    text=df["Bar Label"],
                     textposition="inside",
                     insidetextanchor="middle",
                     marker_line_width=0,
