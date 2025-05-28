@@ -35,6 +35,7 @@ if st.button("Search"):
                     status = status_mod.get("overallStatus", "").upper()
                     start_date = status_mod.get("startDateStruct", {}).get("date", "")
                     end_date = status_mod.get("completionDateStruct", {}).get("date", "")
+                    last_verified = status_mod.get("lastUpdatePostDateStruct", {}).get("date", "")
                     link = f"https://clinicaltrials.gov/study/{nct_id}"
 
                     records.append((nct_id, title, sponsor, status, start_date, end_date, link))
