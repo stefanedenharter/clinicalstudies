@@ -1,9 +1,9 @@
 import streamlit as st
 import requests
 import pandas as pd
-import io
 import plotly.express as px
 from datetime import datetime
+import io
 
 # ------------- PAGE SETUP -------------
 st.set_page_config(layout="wide")
@@ -118,8 +118,7 @@ if st.session_state.df is not None:
     st.markdown("### 🧾 Search Results")
     st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-    # --- Download buttons ---
-    import io
+    # --- Download buttons for CSV and Excel ---
     csv = df.to_csv(index=False).encode('utf-8')
     excel_buffer = io.BytesIO()
     with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
@@ -173,7 +172,7 @@ if st.session_state.df is not None:
 
     fig.update_yaxes(
         autorange="reversed",
-        showticklabels=False,      # <-- Hide y-axis tick labels
+        showticklabels=False,      # Hide y-axis tick labels
         showline=True,
         linecolor="black",
         linewidth=2,
