@@ -85,7 +85,7 @@ if st.button("Search"):
             )
 
             st.session_state.df = df  # Store results for use with filters
-            st.dataframe(df)
+            #st.dataframe(df)
         else:
             st.error("Failed to fetch data. Try again later.")
 
@@ -118,7 +118,7 @@ if st.session_state.df is not None:
     ]]
     st.markdown("### 🧾 Search Results")
     st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
-    st.dataframe(df_display)
+    #st.dataframe(df_display)
     # ------------- TIMELINE CHART -------------
     st.markdown("### 📊 Study Timeline")
 
@@ -135,6 +135,7 @@ if st.session_state.df is not None:
 
     # --- Keep plot order in sync with table by using Bar Label as y ---
     bar_labels = df["Bar Label"].tolist()
+    st.dataframe(bar_labels)
 
     # --- Create Plotly Gantt/timeline chart ---
     fig = px.timeline(
