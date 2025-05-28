@@ -43,15 +43,13 @@ if st.button("Search"):
                     end_date = status_mod.get("completionDateStruct", {}).get("date", "")
                     last_verified = status_mod.get("lastUpdatePostDateStruct", {}).get("date", "")
                     study_type = design_mod.get("studyType", "")
+                    other_id = id_mod.get("orgStudyIdInfo", {}).get("id", "")
+                    enrollment = str(design_mod.get("enrollmentModule", {}).get("enrollmentCount", ""))
 
-                    # Get other study IDs from secondaryIdList
-                    secondary_ids = id_mod.get("secondaryIdList", [])
-                    other_ids = ", ".join([sid.get("secondaryId", "") for sid in secondary_ids])
-
-                    # enrollment = design_mod.get("enrollmentModule", {}).get("enrollmentCount", "")  # Optional: enable later
                     link = f"https://clinicaltrials.gov/study/{nct_id}"
-st.write("Keys in identificationModule:", list(id_mod.keys()))
-                    records.append((nct_id, title, sponsor, status, start_date, end_date, last_verified, study_type, other_ids, link))
+
+                    records.append((nct_id, title, sponsor, status, start_date, end_date,
+                                    last_verified, study_type, other_id, enrollment, link))
                 except Exception:
                     continue
 
@@ -60,7 +58,8 @@ st.write("Keys in identificationModule:", list(id_mod.keys()))
             else:
                 # Build DataFrame
                 df = pd.DataFrame(records, columns=[
-                    "NCT ID", "Title", "Sponsor", "Status", "Start", "End", "Last Verified", "Study Type", "Other IDs", "Link"
+                    "NCT ID", "Title", "Sponsor", "Status", "Start", "End",
+                    "Last Verified", "Study Type", "Other Study ID", "Enrollment", "Link"
                 ])
 
                 # Normalize partial dates (YYYY-MM → YYYY-MM-01)
@@ -79,12 +78,15 @@ st.write("Keys in identificationModule:", list(id_mod.keys()))
                     lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
                 )
 
-                # Display table with added Study Type and Other IDs
-                df_display = df[["Link", "Title", "Sponsor", "Status", "Study Type", "Other IDs", "Start", "End", "Last Verified"]]
+                # Display table
+                df_display = df[[
+                    "Link", "Title", "Sponsor", "Status", "Study Type",
+                    "Other Study ID", "Enrollment", "Start", "End", "Last Verified"
+                ]]
                 st.markdown("### 🧾 Search Results")
                 st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-                # Define custom colors by status
+                # Custom color scheme for study statuses
                 custom_colors = {
                     "RECRUITING": "blue",
                     "COMPLETED": "green",
@@ -105,7 +107,7 @@ st.write("Keys in identificationModule:", list(id_mod.keys()))
                     y="NCT ID",
                     color="Status",
                     color_discrete_map=custom_colors,
-                    hover_data=["Title", "Sponsor", "Status", "Study Type", "Other IDs"],
+                    hover_data=["Title", "Sponsor", "Status", "Study Type", "Other Study ID", "Enrollment"],
                     custom_data=["Link"]
                 )
 
