@@ -43,12 +43,18 @@ if st.button("Search"):
                     end_date = status_mod.get("completionDateStruct", {}).get("date", "")
                     last_verified = status_mod.get("lastUpdatePostDateStruct", {}).get("date", "")
                     study_type = design_mod.get("studyType", "")
-                    other_id = id_mod.get("orgStudyIdInfo", {}).get("id", "")
+
+                    # Extract Company Study ID from orgStudyIdInfo
+                    company_id = id_mod.get("orgStudyIdInfo", {}).get("id", "")
+
+                    # Extract Enrollment Count and ensure string format
+                    enrollment_raw = design_mod.get("enrollmentModule", {}).get("enrollmentCount", None)
+                    enrollment = str(enrollment_raw) if enrollment_raw is not None else "N/A"
 
                     link = f"https://clinicaltrials.gov/study/{nct_id}"
 
                     records.append((nct_id, title, sponsor, status, start_date, end_date,
-                                    last_verified, study_type, other_id, link))
+                                    last_verified, study_type, company_id, enrollment, link))
                 except Exception:
                     continue
 
@@ -58,7 +64,7 @@ if st.button("Search"):
                 # Build DataFrame
                 df = pd.DataFrame(records, columns=[
                     "NCT ID", "Title", "Sponsor", "Status", "Start", "End",
-                    "Last Verified", "Study Type", "Company Study ID", "Link"
+                    "Last Verified", "Study Type", "Company Study ID", "Enrollment", "Link"
                 ])
 
                 # Normalize partial dates (YYYY-MM → YYYY-MM-01)
@@ -80,7 +86,7 @@ if st.button("Search"):
                 # Display table
                 df_display = df[[
                     "Link", "Title", "Sponsor", "Status", "Study Type",
-                    "Company Study ID", "Start", "End", "Last Verified"
+                    "Company Study ID", "Enrollment", "Start", "End", "Last Verified"
                 ]]
                 st.markdown("### 🧾 Search Results")
                 st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
@@ -106,7 +112,7 @@ if st.button("Search"):
                     y="NCT ID",
                     color="Status",
                     color_discrete_map=custom_colors,
-                    hover_data=["Title", "Sponsor", "Status", "Study Type", "Company Study ID"],
+                    hover_data=["Title", "Sponsor", "Status", "Study Type", "Company Study ID", "Enrollment"],
                     custom_data=["Link"]
                 )
 
