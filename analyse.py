@@ -44,17 +44,18 @@ if st.button("Search"):
                     last_verified = status_mod.get("lastUpdatePostDateStruct", {}).get("date", "")
                     study_type = design_mod.get("studyType", "")
 
-                    # Extract Company Study ID from orgStudyIdInfo
+                    # Extract Company Study ID
                     company_id = id_mod.get("orgStudyIdInfo", {}).get("id", "")
 
-                    # Extract Enrollment Count and ensure string format
-                    enrollment_raw = design_mod.get("enrollmentModule", {}).get("enrollmentCount", None)
-                    enrollment = str(enrollment_raw) if enrollment_raw is not None else "N/A"
+                    # Extract enrollment from enrollmentInfo
+                    enrollment = str(design_mod.get("enrollmentInfo", {}).get("count", "N/A"))
 
                     link = f"https://clinicaltrials.gov/study/{nct_id}"
 
-                    records.append((nct_id, title, sponsor, status, start_date, end_date,
-                                    last_verified, study_type, company_id, enrollment, link))
+                    records.append((
+                        nct_id, title, sponsor, status, study_type,
+                        company_id, start_date, end_date, last_verified, enrollment, link
+                    ))
                 except Exception:
                     continue
 
@@ -63,11 +64,11 @@ if st.button("Search"):
             else:
                 # Build DataFrame
                 df = pd.DataFrame(records, columns=[
-                    "NCT ID", "Title", "Sponsor", "Status", "Start", "End",
-                    "Last Verified", "Study Type", "Company Study ID", "Enrollment", "Link"
+                    "NCT ID", "Title", "Sponsor", "Status", "Study Type",
+                    "Company Study ID", "Start", "End", "Last Verified", "Enrollment", "Link"
                 ])
 
-                # Normalize partial dates (YYYY-MM → YYYY-MM-01)
+                # Normalize dates
                 def normalize_date(date_str):
                     if isinstance(date_str, str) and len(date_str) == 7:
                         date_str += "-01"
@@ -78,7 +79,7 @@ if st.button("Search"):
                 df = df.dropna(subset=["Start", "End"])
                 df = df.sort_values(by="Status")
 
-                # Convert NCT IDs to clickable links
+                # Add link HTML
                 df["Link"] = df["NCT ID"].apply(
                     lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
                 )
@@ -91,20 +92,19 @@ if st.button("Search"):
                 st.markdown("### 🧾 Search Results")
                 st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-                # Custom color scheme for study statuses
+                # Color map
                 custom_colors = {
                     "RECRUITING": "blue",
                     "COMPLETED": "green",
-                    "TERMINATED": "#ff9999",  # light red
+                    "TERMINATED": "#ff9999",
                     "NOT YET RECRUITING": "orange",
                     "ACTIVE, NOT RECRUITING": "orange",
                     "UNKNOWN STATUS": "gray",
                     "WITHDRAWN": "brown"
                 }
 
+                # Chart
                 st.markdown("### 📊 Study Timeline")
-
-                # Create Plotly timeline chart
                 fig = px.timeline(
                     df,
                     x_start="Start",
@@ -116,7 +116,6 @@ if st.button("Search"):
                     custom_data=["Link"]
                 )
 
-                # Format NCT ID labels inside bars
                 fig.update_traces(
                     text=df["NCT ID"],
                     textposition="inside",
@@ -125,7 +124,6 @@ if st.button("Search"):
                     textfont=dict(size=16, color="white", family="Arial")
                 )
 
-                # Style chart layout
                 fig.update_layout(
                     showlegend=True,
                     xaxis=dict(
@@ -149,9 +147,7 @@ if st.button("Search"):
                     height=40 * len(df) + 200
                 )
 
-                # Add chart frame
                 fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
                 fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
 
-                # Render chart
                 st.plotly_chart(fig, use_container_width=True)
