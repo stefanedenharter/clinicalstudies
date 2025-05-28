@@ -4,12 +4,10 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 
-# Set page layout
 st.set_page_config(layout="wide")
 st.title("🧪 Clinical Trials Explorer")
 
-# Text input for clinical condition search
-query = st.text_input("Enter a device name, company, ... (e.g., iTind, Tigertriever):", "")
+query = st.text_input("Enter a condition or keyword (e.g., BPH, prostate cancer):", "BPH")
 
 if st.button("Search"):
     with st.spinner("Fetching data from ClinicalTrials.gov..."):
