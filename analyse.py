@@ -42,8 +42,7 @@ if st.button("Search"):
                     start_date = status_mod.get("startDateStruct", {}).get("date", "")
                     end_date = status_mod.get("completionDateStruct", {}).get("date", "")
                     last_verified = status_mod.get("lastUpdatePostDateStruct", {}).get("date", "")
-                    enrollment_info = design_mod.get("enrollmentModule", {})
-                    enrollment = enrollment_info.get("enrollmentCount", "")
+                    enrollment = design_mod.get("enrollmentModule", {}).get("enrollmentCount", "")
                     link = f"https://clinicaltrials.gov/study/{nct_id}"
 
                     if not enrollment:
