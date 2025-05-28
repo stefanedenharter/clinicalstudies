@@ -84,18 +84,6 @@ if st.button("Search"):
                 if type_filter != "All":
                     df = df[df["Study Type"] == type_filter]
 
-                # Filter: Start Date Range
-                min_date = df["Start"].min()
-                max_date = df["Start"].max()
-                if pd.notnull(min_date) and pd.notnull(max_date):
-                    date_range = st.slider(
-                        "Start Date Range",
-                        min_value=min_date.to_pydatetime(),
-                        max_value=max_date.to_pydatetime(),
-                        value=(min_date.to_pydatetime(), max_date.to_pydatetime())
-                    )
-                    df = df[df["Start"].between(date_range[0], date_range[1])]
-
                 # Convert NCT IDs to clickable links
                 df["Link"] = df["NCT ID"].apply(
                     lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
