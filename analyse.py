@@ -80,7 +80,7 @@ if st.button("Search"):
                 # Display table
                 df_display = df[[
                     "Link", "Title", "Sponsor", "Status", "Study Type",
-                    "Other Study ID", "Start", "End", "Last Verified"
+                    "Company Study ID", "Start", "End", "Last Verified"
                 ]]
                 st.markdown("### 🧾 Search Results")
                 st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
@@ -106,7 +106,7 @@ if st.button("Search"):
                     y="NCT ID",
                     color="Status",
                     color_discrete_map=custom_colors,
-                    hover_data=["Title", "Sponsor", "Status", "Study Type", "Other Study ID"],
+                    hover_data=["Title", "Sponsor", "Status", "Study Type", "Company Study ID"],
                     custom_data=["Link"]
                 )
 
