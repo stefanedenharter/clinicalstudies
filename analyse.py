@@ -129,12 +129,12 @@ if st.session_state.df is not None:
         "WITHDRAWN": "brown"
     }
 
-    # --- Use running number "#" as Y axis ---
+    # --- Use Bar Label as Y axis (the fix!) ---
     fig = px.timeline(
         df,
         x_start="Start",
         x_end="End",
-        y="#",  # <-- running number as y-axis
+        y="Bar Label",  # <-- categorical y axis: FIXED!
         color="Status",
         color_discrete_map=custom_colors,
         hover_data=["Bar Label", "NCT ID", "Title", "Sponsor", "Status", "Study Type", "Company Study ID"],
@@ -150,10 +150,8 @@ if st.session_state.df is not None:
         textfont=dict(size=16, color="white", family="Arial")
     )
 
-    # --- Set the y-axis tick labels to show Bar Label (optional: hide or show as needed) ---
+    # --- Y-axis: No need for tickvals/ticktext; Plotly handles it for categories ---
     fig.update_yaxes(
-        tickvals=df["#"],  # Use row numbers as y-ticks
-        ticktext=df["Bar Label"],  # Display Bar Label at each tick
         autorange="reversed"
     )
 
@@ -178,7 +176,7 @@ if st.session_state.df is not None:
         ),
         yaxis=dict(
             title=None,
-            showticklabels=True,  # True: shows NCT + number, False: hides
+            showticklabels=True,
             showline=True,
             linecolor="black"
         ),
