@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
+from io import BytesIO
 
 st.set_page_config(layout="wide")
 st.title("🧪 Clinical Trials Explorer")
@@ -73,7 +74,7 @@ if st.button("Search"):
                 if sponsor_filter != "All":
                     df = df[df["Sponsor"] == sponsor_filter]
 
-                # Filter: Start Date Range (safe handling)
+                # Filter: Start Date Range
                 min_date_raw = df["Start"].min()
                 max_date_raw = df["Start"].max()
 
@@ -92,15 +93,20 @@ if st.button("Search"):
                 else:
                     st.warning("No valid start dates available for filtering.")
 
-                # Download to Excel
+                # Excel download using BytesIO
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    df.drop(columns=["Link"]).to_excel(writer, index=False)
+                output.seek(0)
+
                 st.download_button(
-                    "📥 Download Results as Excel",
-                    df.drop(columns=["Link"]).to_excel(index=False, engine='openpyxl'),
+                    label="📥 Download Results as Excel",
+                    data=output,
                     file_name="clinical_trials.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
 
-                # Convert row number and NCT ID into clickable links
+                # Make row number and NCT ID clickable
                 df["#"] = df.apply(lambda row: f'<a href="https://clinicaltrials.gov/study/{row["NCT ID"]}" target="_blank">{row["#"]}</a>', axis=1)
                 df["Link"] = df["NCT ID"].apply(
                     lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
@@ -114,13 +120,13 @@ if st.button("Search"):
                 st.markdown("### 🧾 Search Results")
                 st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-                # Label for timeline bars (NCT ID + running number)
+                # Label for timeline bars (NCT ID + row number)
                 df["Bar Label"] = df.apply(
                     lambda row: f"{row['NCT ID']} ({row['#'].split('>')[1].split('<')[0]})",
                     axis=1
                 )
 
-                # Color mapping
+                # Custom color scheme
                 custom_colors = {
                     "RECRUITING": "blue",
                     "COMPLETED": "green",
