@@ -1,18 +1,18 @@
 import streamlit as st
 import requests
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.express as px
 from datetime import datetime
 
 st.set_page_config(layout="wide")
-st.title("🧪 Clinical Trials Explorer")
+st.title("🧪 Clinical Trials Explorer (Interactive)")
 
 # User input
 query = st.text_input("Enter a condition or keyword (e.g., BPH, prostate cancer):", "BPH")
 
 if st.button("Search"):
     with st.spinner("Fetching data from ClinicalTrials.gov..."):
-        url = f"https://clinicaltrials.gov/api/v2/studies?query.term={query}&pageSize=20"
+        url = f"https://clinicaltrials.gov/api/v2/studies?query.term={query}&pageSize=30"
         response = requests.get(url)
 
         if response.status_code != 200:
@@ -36,8 +36,9 @@ if st.button("Search"):
                     status = status_mod.get("overallStatus", "")
                     start_date = status_mod.get("startDateStruct", {}).get("date", "")
                     end_date = status_mod.get("completionDateStruct", {}).get("date", "")
+                    link = f"https://clinicaltrials.gov/study/{nct_id}"
 
-                    records.append((nct_id, title, sponsor, status, start_date, end_date))
+                    records.append((nct_id, title, sponsor, status, start_date, end_date, link))
                 except Exception:
                     continue
 
@@ -45,79 +46,53 @@ if st.button("Search"):
                 st.warning("No results found.")
             else:
                 # Create DataFrame
-                df = pd.DataFrame(records, columns=["NCT ID", "Title", "Sponsor", "Status", "Start", "End"])
+                df = pd.DataFrame(records, columns=["NCT ID", "Title", "Sponsor", "Status", "Start", "End", "Link"])
 
-                # Sort by status
+                # Normalize incomplete dates (e.g., "YYYY-MM")
+                def normalize_date(date_str):
+                    if isinstance(date_str, str) and len(date_str) == 7:
+                        date_str += "-01"
+                    return pd.to_datetime(date_str, errors='coerce')
+
+                df["Start"] = df["Start"].apply(normalize_date)
+                df["End"] = df["End"].apply(normalize_date)
+                df = df.dropna(subset=["Start", "End"])
+
+                # Sort table by status
                 df = df.sort_values(by="Status")
 
-                # Add hyperlinks to NCT IDs
+                # Display table with hyperlinks
                 df["Link"] = df["NCT ID"].apply(
                     lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
                 )
                 df_display = df[["Link", "Title", "Sponsor", "Status", "Start", "End"]]
-
                 st.markdown("### 🧾 Search Results")
                 st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-                # Prepare chart data
-                df_chart = df.dropna(subset=["Start", "End"]).copy()
-                # Normalize partial dates like "YYYY-MM" to "YYYY-MM-01"
-                def normalize_date(date_str):
-                    if isinstance(date_str, str) and len(date_str) == 7:  # "YYYY-MM"
-                        date_str += "-01"
-                    return pd.to_datetime(date_str, errors='coerce')
-                
-                df_chart["Start"] = df_chart["Start"].apply(normalize_date)
-                df_chart["End"] = df_chart["End"].apply(normalize_date)
-                df_chart = df_chart.dropna()
+                # Plotly timeline chart
+                st.markdown("### 📊 Interactive Study Timeline")
+                fig = px.timeline(
+                    df,
+                    x_start="Start",
+                    x_end="End",
+                    y="NCT ID",
+                    color="Status",
+                    hover_data=["Title", "Sponsor", "Status"],
+                    custom_data=["Link"]
+                )
 
-                if not df_chart.empty:
-                    st.markdown("### 📊 Study Duration Chart")
+                fig.update_traces(
+                    text=df["NCT ID"],
+                    textposition="inside",
+                    marker_line_width=0
+                )
+                fig.update_layout(
+                    yaxis_title="",
+                    xaxis_title="Date",
+                    hoverlabel_align="left",
+                    margin=dict(l=20, r=20, t=40, b=40),
+                    height=40 * len(df) + 200
+                )
 
-                    # Define colors for status
-                    status_colors = {
-                        "RECRUITING": "tab:blue",
-                        "COMPLETED": "tab:green",
-                        "TERMINATED": "tab:red",
-                        "NOT YET RECRUITING": "tab:orange",
-                        "ACTIVE, NOT RECRUITING": "tab:purple",
-                        "UNKNOWN STATUS": "tab:gray",
-                        "WITHDRAWN": "tab:brown"
-                    }
-
-                    fig, ax = plt.subplots(figsize=(10, len(df_chart) * 0.5))
-
-                    for i, row in df_chart.iterrows():
-                        duration = (row["End"] - row["Start"]).days
-                        color = status_colors.get(row["Status"].upper(), "tab:gray")
-                        ax.barh(i, duration, left=row["Start"], color=color)
-                        ax.text(row["Start"] + pd.Timedelta(days=duration // 2),
-                                i, row["NCT ID"], va='center', ha='center', fontsize=7, color="black")
-
-                    ax.set_yticks([])  # Hide study titles
-               
-
-
-                    # Legend below chart with extra space
-                    handles = [
-                        plt.Line2D([0], [0], color=color, lw=6, label=status.title())
-                        for status, color in status_colors.items()
-                    ]
-                    
-                    # Expand the bottom margin to fit the legend cleanly
-                    fig.subplots_adjust(bottom=0.4)  # Increased from 0.2 to 0.3
-                    
-                    # Move legend down slightly to avoid x-axis label overlap
-                    ax.legend(
-                        handles=handles,
-                        title="Study Status",
-                        loc='upper center',
-                        bbox_to_anchor=(0.5, -0.25),  # lower vertical anchor
-                        ncol=3,
-                        fontsize=8,
-                        title_fontsize=9
-                    )
-
-                    st.pyplot(fig)
-                else:
-                    st.info("No studies had valid dates for charting.")
+                # Show the chart
+                st.plotly_chart(fig, use_container_width=True)
