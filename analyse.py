@@ -7,7 +7,7 @@ from datetime import datetime
 st.set_page_config(layout="wide")
 st.title("🧪 Clinical Trials Explorer")
 
-# Input for search query
+# Input for clinical condition
 query = st.text_input("Enter a condition or keyword (e.g., BPH, prostate cancer):", "BPH")
 
 if st.button("Search"):
@@ -56,7 +56,7 @@ if st.button("Search"):
                     "Company Study ID", "Start", "End", "Last Verified", "Link"
                 ])
 
-                # Normalize dates
+                # Convert partial date strings to datetime
                 def normalize_date(date_str):
                     if isinstance(date_str, str) and len(date_str) == 7:
                         date_str += "-01"
@@ -67,43 +67,32 @@ if st.button("Search"):
                 df = df.dropna(subset=["Start", "End"])
                 df = df.sort_values(by="Status")
 
-                # Sponsor filter
+                # Filter: Sponsor
                 sponsors = sorted(df["Sponsor"].dropna().unique())
                 sponsor_filter = st.selectbox("Filter by Sponsor", options=["All"] + sponsors)
                 if sponsor_filter != "All":
                     df = df[df["Sponsor"] == sponsor_filter]
 
-                # Date filter (only if valid dates exist)
-                if not df["Start"].isna().all():
-                    min_date_raw = df["Start"].min()
-max_date_raw = df["Start"].max()
+                # Filter: Start Date Range (safe handling)
+                min_date_raw = df["Start"].min()
+                max_date_raw = df["Start"].max()
 
-# Ensure valid datetime values (Streamlit expects Python datetime, not pandas Timestamp)
-if pd.notnull(min_date_raw) and pd.notnull(max_date_raw):
-    min_date = min_date_raw.to_pydatetime()
-    max_date = max_date_raw.to_pydatetime()
+                if pd.notnull(min_date_raw) and pd.notnull(max_date_raw):
+                    min_date = min_date_raw.to_pydatetime()
+                    max_date = max_date_raw.to_pydatetime()
 
-    start_range = st.slider(
-        "Start Date Range",
-        min_value=min_date,
-        max_value=max_date,
-        value=(min_date, max_date)
-    )
-
-    df = df[df["Start"].between(start_range[0], start_range[1])]
-else:
-    st.warning("No valid start dates found to use in the slider.")
                     start_range = st.slider(
                         "Start Date Range",
                         min_value=min_date,
                         max_value=max_date,
                         value=(min_date, max_date)
                     )
+
                     df = df[df["Start"].between(start_range[0], start_range[1])]
                 else:
                     st.warning("No valid start dates available for filtering.")
 
-                # Download button
+                # Download to Excel
                 st.download_button(
                     "📥 Download Results as Excel",
                     df.drop(columns=["Link"]).to_excel(index=False, engine='openpyxl'),
@@ -111,7 +100,7 @@ else:
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
 
-                # Make row number clickable
+                # Convert row number and NCT ID into clickable links
                 df["#"] = df.apply(lambda row: f'<a href="https://clinicaltrials.gov/study/{row["NCT ID"]}" target="_blank">{row["#"]}</a>', axis=1)
                 df["Link"] = df["NCT ID"].apply(
                     lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
@@ -125,13 +114,13 @@ else:
                 st.markdown("### 🧾 Search Results")
                 st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-                # Prepare text for bars
+                # Label for timeline bars (NCT ID + running number)
                 df["Bar Label"] = df.apply(
                     lambda row: f"{row['NCT ID']} ({row['#'].split('>')[1].split('<')[0]})",
                     axis=1
                 )
 
-                # Custom colors for statuses
+                # Color mapping
                 custom_colors = {
                     "RECRUITING": "blue",
                     "COMPLETED": "green",
