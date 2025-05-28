@@ -92,7 +92,7 @@ if st.button("Search"):
                         color = status_colors.get(row["Status"].upper(), "tab:gray")
                         ax.barh(i, duration, left=row["Start"], color=color)
                         ax.text(row["Start"] + pd.Timedelta(days=duration // 2),
-                                i, row["NCT ID"], va='center', ha='center', fontsize=7, color="white")
+                                i, row["NCT ID"], va='center', ha='center', fontsize=7, color="black")
 
                     ax.set_yticks([])  # Hide study titles
                
