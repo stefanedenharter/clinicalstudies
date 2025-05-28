@@ -61,8 +61,14 @@ if st.button("Search"):
 
                 # Prepare chart data
                 df_chart = df.dropna(subset=["Start", "End"]).copy()
-                df_chart["Start"] = pd.to_datetime(df_chart["Start"], errors='coerce')
-                df_chart["End"] = pd.to_datetime(df_chart["End"], errors='coerce')
+                # Normalize partial dates like "YYYY-MM" to "YYYY-MM-01"
+                def normalize_date(date_str):
+                    if isinstance(date_str, str) and len(date_str) == 7:  # "YYYY-MM"
+                        date_str += "-01"
+                    return pd.to_datetime(date_str, errors='coerce')
+                
+                df_chart["Start"] = df_chart["Start"].apply(normalize_date)
+                df_chart["End"] = df_chart["End"].apply(normalize_date)
                 df_chart = df_chart.dropna()
 
                 if not df_chart.empty:
