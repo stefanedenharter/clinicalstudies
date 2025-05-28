@@ -4,29 +4,27 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 
-# Set page layout
+# Set page layout and title
 st.set_page_config(layout="wide")
-st.title("🧪 Clinical Trials Explorer")
+st.title("🚑 Clinical Trials Explorer")  # Medical-themed icon
 
-# Text input for clinical condition search
+# Text input for search term
 query = st.text_input("Enter a condition or keyword (e.g., BPH, prostate cancer):", "BPH")
 
-# Start search on button click
+# Initialize session state for results
+if "df" not in st.session_state:
+    st.session_state.df = None
+
+# Perform search and store in session state
 if st.button("Search"):
     with st.spinner("Fetching data from ClinicalTrials.gov..."):
-
-        # Call ClinicalTrials.gov API
         url = f"https://clinicaltrials.gov/api/v2/studies?query.term={query}&pageSize=30"
         response = requests.get(url)
 
-        if response.status_code != 200:
-            st.error("Failed to fetch data. Try again later.")
-        else:
-            data = response.json()
-            studies = data.get("studies", [])
-
-            # Extract relevant fields
+        if response.status_code == 200:
+            studies = response.json().get("studies", [])
             records = []
+
             for i, study in enumerate(studies, start=1):
                 try:
                     sec = study.get("protocolSection", {})
@@ -53,108 +51,113 @@ if st.button("Search"):
                 except Exception:
                     continue
 
-            if not records:
-                st.warning("No results found.")
-            else:
-                df = pd.DataFrame(records, columns=[
-                    "#", "NCT ID", "Title", "Sponsor", "Status", "Study Type",
-                    "Company Study ID", "Start", "End", "Last Verified", "Link"
-                ])
+            df = pd.DataFrame(records, columns=[
+                "#", "NCT ID", "Title", "Sponsor", "Status", "Study Type",
+                "Company Study ID", "Start", "End", "Last Verified", "Link"
+            ])
 
-                # Normalize dates
-                def normalize_date(date_str):
-                    if isinstance(date_str, str) and len(date_str) == 7:
-                        date_str += "-01"
-                    return pd.to_datetime(date_str, errors='coerce')
+            def normalize_date(date_str):
+                if isinstance(date_str, str) and len(date_str) == 7:
+                    date_str += "-01"
+                return pd.to_datetime(date_str, errors='coerce')
 
-                df["Start"] = df["Start"].apply(normalize_date)
-                df["End"] = df["End"].apply(normalize_date)
-                df = df.dropna(subset=["Start", "End"])
-                df = df.sort_values(by="Status")
+            df["Start"] = df["Start"].apply(normalize_date)
+            df["End"] = df["End"].apply(normalize_date)
+            df = df.dropna(subset=["Start", "End"])
+            df = df.sort_values(by="Status")
 
-                # Filters in two columns
-                col1, col2 = st.columns(2)
+            df["Link"] = df["NCT ID"].apply(
+                lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
+            )
 
-                with col1:
-                    sponsors = sorted(df["Sponsor"].dropna().unique())
-                    sponsor_filter = st.selectbox("Filter by Sponsor", ["All"] + sponsors)
-                    if sponsor_filter != "All":
-                        df = df[df["Sponsor"] == sponsor_filter]
+            df["Bar Label"] = df.apply(lambda row: f"{row['NCT ID']} ({row['#']})", axis=1)
 
-                with col2:
-                    study_types = sorted(df["Study Type"].dropna().unique())
-                    type_filter = st.selectbox("Filter by Study Type", ["All"] + study_types)
-                    if type_filter != "All":
-                        df = df[df["Study Type"] == type_filter]
+            st.session_state.df = df
+        else:
+            st.error("Failed to fetch data. Try again later.")
 
-                # Convert NCT IDs to clickable links
-                df["Link"] = df["NCT ID"].apply(
-                    lambda x: f'<a href="https://clinicaltrials.gov/study/{x}" target="_blank">{x}</a>'
-                )
+# Display filters and results if data is available
+if st.session_state.df is not None:
+    df = st.session_state.df.copy()
 
-                # Display table with running number
-                df_display = df[[ "#", "Link", "Title", "Sponsor", "Status", "Study Type", "Company Study ID", "Start", "End", "Last Verified" ]]
-                st.markdown("### 🧾 Search Results")
-                st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
 
-                # Custom colors
-                custom_colors = {
-                    "RECRUITING": "blue",
-                    "COMPLETED": "green",
-                    "TERMINATED": "#ff9999",
-                    "NOT YET RECRUITING": "orange",
-                    "ACTIVE, NOT RECRUITING": "orange",
-                    "UNKNOWN STATUS": "gray",
-                    "WITHDRAWN": "brown"
-                }
+    with col1:
+        sponsors = sorted(df["Sponsor"].dropna().unique())
+        sponsor_filter = st.selectbox("Filter by Sponsor", ["All"] + sponsors)
+        if sponsor_filter != "All":
+            df = df[df["Sponsor"] == sponsor_filter]
 
-                st.markdown("### 📊 Study Timeline")
+    with col2:
+        study_types = sorted(df["Study Type"].dropna().unique())
+        type_filter = st.selectbox("Filter by Study Type", ["All"] + study_types)
+        if type_filter != "All":
+            df = df[df["Study Type"] == type_filter]
 
-                df["Bar Label"] = df.apply(lambda row: f"{row['NCT ID']} ({row['#']})", axis=1)
+    # Display results table
+    df_display = df[[
+        "#", "Link", "Title", "Sponsor", "Status", "Study Type",
+        "Company Study ID", "Start", "End", "Last Verified"
+    ]]
+    st.markdown("### 🧾 Search Results")
+    st.markdown(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-                fig = px.timeline(
-                    df,
-                    x_start="Start",
-                    x_end="End",
-                    y="NCT ID",
-                    color="Status",
-                    color_discrete_map=custom_colors,
-                    hover_data=["Title", "Sponsor", "Status", "Study Type", "Company Study ID"],
-                    custom_data=["Link"]
-                )
+    # Timeline visualization
+    st.markdown("### 📊 Study Timeline")
 
-                fig.update_traces(
-                    text=df["Bar Label"],
-                    textposition="inside",
-                    insidetextanchor="middle",
-                    marker_line_width=0,
-                    textfont=dict(size=16, color="white", family="Arial")
-                )
+    custom_colors = {
+        "RECRUITING": "blue",
+        "COMPLETED": "green",
+        "TERMINATED": "#ff9999",
+        "NOT YET RECRUITING": "orange",
+        "ACTIVE, NOT RECRUITING": "orange",
+        "UNKNOWN STATUS": "gray",
+        "WITHDRAWN": "brown"
+    }
 
-                fig.update_layout(
-                    showlegend=True,
-                    xaxis=dict(
-                        title=None,
-                        showticklabels=True,
-                        showline=True,
-                        linecolor="black",
-                        tickfont=dict(size=18, family="Arial", color="black")
-                    ),
-                    yaxis=dict(
-                        title=None,
-                        showticklabels=False,
-                        showline=True,
-                        linecolor="black"
-                    ),
-                    plot_bgcolor="white",
-                    paper_bgcolor="white",
-                    hoverlabel=dict(font_size=14, font_family="Arial"),
-                    font=dict(size=16, family="Arial", color="black"),
-                    margin=dict(l=20, r=20, t=40, b=40),
-                    height=40 * len(df) + 200
-                )
+    fig = px.timeline(
+        df,
+        x_start="Start",
+        x_end="End",
+        y="NCT ID",
+        color="Status",
+        color_discrete_map=custom_colors,
+        hover_data=["Title", "Sponsor", "Status", "Study Type", "Company Study ID"],
+        custom_data=["Link"]
+    )
 
-                fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
-                fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
+    fig.update_traces(
+        text=df["Bar Label"],
+        textposition="inside",
+        insidetextanchor="middle",
+        marker_line_width=0,
+        textfont=dict(size=16, color="white", family="Arial")
+    )
 
-                st.plotly_chart(fig, use_container_width=True)
+    fig.update_layout(
+        showlegend=True,
+        xaxis=dict(
+            title=None,
+            showticklabels=True,
+            showline=True,
+            linecolor="black",
+            tickfont=dict(size=18, family="Arial", color="black")
+        ),
+        yaxis=dict(
+            title=None,
+            showticklabels=False,
+            showline=True,
+            linecolor="black"
+        ),
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        hoverlabel=dict(font_size=14, font_family="Arial"),
+        font=dict(size=16, family="Arial", color="black"),
+        margin=dict(l=20, r=20, t=40, b=40),
+        height=40 * len(df) + 200
+    )
+
+    fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
+    fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
+
+    st.plotly_chart(fig, use_container_width=True)
