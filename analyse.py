@@ -130,60 +130,60 @@ if st.session_state.df is not None:
     }
 
     # --- Use Bar Label as Y axis and for bar text ---
-    fig = px.timeline(
-        df,
-        x_start="Start",
-        x_end="End",
-        y="Bar Label",
-        color="Status",
-        color_discrete_map=custom_colors,
-        hover_data=["Bar Label", "NCT ID", "Title", "Sponsor", "Status", "Study Type", "Company Study ID"],
-        custom_data=["Link"],
-        text="Bar Label"  # <-- THE KEY LINE!
-    )
+   fig = px.timeline(
+    df,
+    x_start="Start",
+    x_end="End",
+    y="Bar Label",
+    color="Status",
+    color_discrete_map=custom_colors,
+    hover_data=["Bar Label", "NCT ID", "Title", "Sponsor", "Status", "Study Type", "Company Study ID"],
+    custom_data=["Link"],
+    text="Bar Label"
+)
 
-    fig.update_traces(
-        textposition="inside",
-        insidetextanchor="middle",
-        marker_line_width=0,
-        textfont=dict(size=16, color="white", family="Arial")
-    )
+fig.update_traces(
+    textposition="inside",
+    insidetextanchor="middle",
+    marker_line_width=0,
+    textfont=dict(size=16, color="white", family="Arial")
+)
 
-    fig.update_yaxes(autorange="reversed")
+fig.update_yaxes(
+    autorange="reversed",
+    showticklabels=False   # <-- THIS HIDES THE Y-AXIS LABELS
+)
 
-    # --- Add vertical line for today ---
-    today = datetime.today().date().isoformat()
-    fig.add_vline(
-        x=today,
-        line_width=2,
-        line_dash="dash",
-        line_color="red"
-    )
+today = datetime.today().date().isoformat()
+fig.add_vline(
+    x=today,
+    line_width=2,
+    line_dash="dash",
+    line_color="red"
+)
 
-    # --- Chart Layout ---
-    fig.update_layout(
-        showlegend=True,
-        xaxis=dict(
-            title=None,
-            showticklabels=True,
-            showline=True,
-            linecolor="black",
-            tickfont=dict(size=18, family="Arial", color="black")
-        ),
-        yaxis=dict(
-            title=None,
-            showticklabels=True,
-            showline=True,
-            linecolor="black"
-        ),
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        hoverlabel=dict(font_size=14, font_family="Arial"),
-        font=dict(size=16, family="Arial", color="black"),
-        margin=dict(l=20, r=20, t=40, b=40),
-        height=40 * len(df) + 200
-    )
-    fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
-    fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
+fig.update_layout(
+    showlegend=True,
+    xaxis=dict(
+        title=None,
+        showticklabels=True,
+        showline=True,
+        linecolor="black",
+        tickfont=dict(size=18, family="Arial", color="black")
+    ),
+    yaxis=dict(
+        title=None,
+        showline=True,
+        linecolor="black"
+    ),
+    plot_bgcolor="white",
+    paper_bgcolor="white",
+    hoverlabel=dict(font_size=14, font_family="Arial"),
+    font=dict(size=16, family="Arial", color="black"),
+    margin=dict(l=20, r=20, t=40, b=40),
+    height=40 * len(df) + 200
+)
+fig.update_xaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
+fig.update_yaxes(showline=True, linewidth=2, linecolor='black', mirror=True)
 
-    st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True)
