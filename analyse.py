@@ -11,7 +11,7 @@ st.title("🚑 Clinical Trials Explorer")
 
 # ------------- SEARCH INPUT -------------
 query = st.text_input(
-    "Enter a condition or keyword (e.g., BPH, prostate cancer):", "BPH"
+    "Enter a device name, company or other keyword (e.g., iTind, BariTon, Olympus):", ""
 )
 
 # --- Session state to preserve search results for smooth filtering ---
