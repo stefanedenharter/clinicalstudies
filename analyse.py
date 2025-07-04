@@ -21,7 +21,7 @@ if "df" not in st.session_state:
 # ------------- DATA FETCHING FROM API -------------
 if st.button("Search"):
     with st.spinner("Fetching data from ClinicalTrials.gov..."):
-        url = f"https://clinicaltrials.gov/api/v2/studies?query.term={query}&pageSize=30"
+        url = f"https://clinicaltrials.gov/api/v2/studies?query.term={query}&pageSize=1000"
         response = requests.get(url)
 
         if response.status_code == 200:
